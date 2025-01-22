@@ -33,8 +33,17 @@ const url = Commander.createArgument("<url|file...>", "remote URL or local file 
       const pageFetcher = new PageFetcher(browser)
       const pages = await Promise.all(urls.map(u => pageFetcher.fetchPage(u)))
       const resources = await Promise.all(pages.map(p => extractor.executePlugins(p)))
-      console.log("Extracted resources:", resources.join(", "))
       browser.close();
+      resources.forEach(({ url, title, resources }) => {
+        console.log(`Resource from ${url}`)
+        console.log(`\tTitle: ${title}`)
+        console.log(`Resources:`)
+        resources.forEach(({ innerHTML }) => {
+          console.log(`${innerHTML}`)
+        })
+      });
+      // const pagePrinter = new PageContentPrinter()
+      // pagePrinter.printResources(resources)
     })
     .parseAsync(process.argv);
 })();
