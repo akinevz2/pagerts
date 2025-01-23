@@ -1,14 +1,11 @@
 import Commander from "commander";
-import puppetteer from "puppeteer";
 import PageExtractor from "./PageExtractor";
 import { PageFetcher } from "./PageFetcher";
+import { LogStylePagePrinter as PagePrinter } from './PagePrinter';
 
 const program = new Commander.Command();
 
 const url = Commander.createArgument("<url|file...>", "remote URL or local file to extract remote resources from");
-
-// const fetch = Commander.createOption("-f, --fetch", "download and parse all remote resources from a web page");
-// const extract = Commander.createOption("-e, --extract", "extract all remote resources from the web page");
 
 (async () => {
   const package_json = (await import("../package.json")).default;
@@ -24,26 +21,14 @@ const url = Commander.createArgument("<url|file...>", "remote URL or local file 
     .description(program_description)
     .addArgument(url)
     .action(async (urls: string[]) => {
-      console.log("Extracting resources from:", urls.join(", "))
-      const browser = await puppetteer.launch({
-        headless: true,
-        args: ["--no-sandbox"]
-      })
-      const extractor = new PageExtractor('a', 'img', 'script')
-      const pageFetcher = new PageFetcher(browser)
-      const pages = await Promise.all(urls.map(u => pageFetcher.fetchPage(u)))
-      const resources = await Promise.all(pages.map(p => extractor.executePlugins(p)))
-      browser.close();
-      resources.forEach(({ url, title, resources }) => {
-        console.log(`Resource from ${url}`)
-        console.log(`\tTitle: ${title}`)
-        console.log(`Resources:`)
-        resources.forEach(({ innerHTML }) => {
-          console.log(`${innerHTML}`)
-        })
-      });
-      // const pagePrinter = new PageContentPrinter()
-      // pagePrinter.printResources(resources)
+      console.log("Extracting resources from:", urls)
+      const extractor = new PageExtractor('a', 'img', 'script', 'link')
+
+      const pageFetcher = new PageFetcher()
+      const pagesFetched = await Promise.all(urls.map(u => pageFetcher.fetchPage(u)))
+      const pageContents = await Promise.all(pagesFetched.map(p => extractor.executePlugins(p)))
+      const pagePrinter = new PagePrinter(pageContents)
+      await pagePrinter.print()
     })
     .parseAsync(process.argv);
 })();
