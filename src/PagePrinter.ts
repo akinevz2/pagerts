@@ -8,6 +8,7 @@ export class LogStylePagePrinter extends AbstractResourcePrinter {
             const { title, url, resources } = pageContent
             console.log(`Title: ${title}`)
             console.log(`URL: ${url}`)
+
             console.log("Resources:")
             for (const resource of resources) {
                 try {

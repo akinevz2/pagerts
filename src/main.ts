@@ -1,4 +1,6 @@
 import Commander from "commander";
+
+import { description, name, version } from '../package.json';
 import PageExtractor from "./PageExtractor";
 import { PageFetcher } from "./PageFetcher";
 import { LogStylePagePrinter as PagePrinter } from './PagePrinter';
@@ -8,17 +10,10 @@ const program = new Commander.Command();
 const url = Commander.createArgument("<url|file...>", "remote URL or local file to extract remote resources from");
 
 (async () => {
-  const package_json = (await import("../package.json")).default;
-
-  const program_name = package_json.name;
-  const program_version = package_json.version;
-  const program_description = package_json.description;
-
-
   await program
-    .name(program_name)
-    .version(program_version, "-v, --version")
-    .description(program_description)
+    .name(name)
+    .version(version, "-v, --version")
+    .description(description)
     .addArgument(url)
     .action(async (urls: string[]) => {
       console.log("Extracting resources from:", urls)
