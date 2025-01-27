@@ -2,12 +2,14 @@
   "name": "treepage",
   "description": "A webpage hierarchy management tool",
   "version": "0.1.0",
-  "main": "src/main.ts",
+  "main": "src/main",
   "scripts": {
     "test": "jest",
-    "start": "npx tsx src/main.ts"
+    "build": "npx tsc",
+    "start": "node dist",
+    "dev": "npx tsx src/main.ts"
   },
-  "bin": "pagetree",
+  "bin": "treepage",
   "keywords": [
     "webpage",
     "hierarchy",

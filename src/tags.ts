@@ -7,20 +7,23 @@
  * a resource that can be hyperlinked off a webpage.
  */
 
-
-export type HasKey<K, T> = { [C in keyof T]: C extends K ? T : never }[keyof T];
-
 type Tags = HTMLElementTagNameMap
-export type IsTag<K, T> = K extends keyof T ? T[K] : never;
 
-export type IsResource<T, K, C> = HasKey<T, IsTag<K, C>>;
+export const resourceKeys = ['src', 'href', 'target', 'action', 'url'] as const;
+
+export type ResourceKey = typeof resourceKeys[number];
+
+export type HasKey<K, C> = K extends keyof C ? C[K] : never;
+
+export type IfTagKey<T, C> = { [K in keyof C]: K extends T ? C : never }[keyof C];
+
+export type IsResource<T, K, C> = IfTagKey<T, HasKey<K, C>>;
 
 export type ResourceElement<T, C> = { [K in keyof C]: IsResource<T, K, C> }[keyof C];
 
-export type ResourceKey = 'href' | 'src' | 'url';
 export type Resource = ResourceElement<ResourceKey, Tags>;
 
-export function hasResourceKey<T extends R, R extends string = ResourceKey>(element: HTMLElement, key: T): element is ResourceElement<T, Tags> {
-    return key in element
+export function isKeyDefined<T extends string = ResourceKey>(element: HTMLElement, key: T): element is ResourceElement<T, Tags> {
+    return key in element && (element[key as string]?.trim() ?? '' !== '')
 }
 
