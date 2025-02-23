@@ -13,17 +13,19 @@ export const resourceKeys = ['src', 'href', 'target', 'action', 'url'] as const;
 
 export type ResourceKey = typeof resourceKeys[number];
 
-export type HasKey<K, C> = K extends keyof C ? C[K] : never;
+export type GetKey<C, K> = K extends keyof C ? C[K] : never;
 
-export type IfTagKey<T, C> = { [K in keyof C]: K extends T ? C : never }[keyof C];
+export type IfContainsKey<U, C> = { [K in keyof C]: K extends U ? C : never }[keyof C];
 
-export type IsResource<T, K, C> = IfTagKey<T, HasKey<K, C>>;
+export type IsResource<U, K, C> = IfContainsKey<U, GetKey<C, K>>;
 
-export type ResourceElement<T, C> = { [K in keyof C]: IsResource<T, K, C> }[keyof C];
+export type Resources<KU, C> = { [K in keyof C]: IsResource<KU, K, C> }[keyof C];
 
-export type Resource = ResourceElement<ResourceKey, Tags>;
+export type Resource = Resources<ResourceKey, Tags>;
 
-export function isKeyDefined<T extends string = ResourceKey>(element: HTMLElement, key: T): element is ResourceElement<T, Tags> {
+
+export function isKeyDefined<T extends string = ResourceKey>(element: HTMLElement, key: T): element is Resource {
     return key in element && (element[key as string]?.trim() ?? '' !== '')
 }
 
+type test1 = keyof 'a' | 'b'
