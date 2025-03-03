@@ -1,7 +1,20 @@
+We wish to be able to dynamically extract data from a webpage object.
 
-We need to define a framework of extractors that can be specified using parsed JS.
+> The webpage object is represented using JSDOM.
 
-The user should be able to specify the JS string, furthermore named the Query String.
+We define a framework of extractors using a typescript interface.
 
-The QS should be used as a filter for the extracted data.
+We implement a pair of basic extractors:
+- extract by class name 
+- extract tag property
+
+To implement this framework, we need to have a clean representation 
+of the data that we wish to extract.
+
+> The output data format should be specified by the user.
+
+The user should be able to specify the JS string,
+furthermore named the Query String.
+
+The QS should be used as a flatmap function for the extracted data.
 The extracted data should be returned in JSON format.

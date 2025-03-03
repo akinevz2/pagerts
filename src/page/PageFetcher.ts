@@ -8,4 +8,8 @@ export class PageFetcher {
         });
         return dom;
     }
+    async fetchAll(urls:string[]): Promise<JSDOM[]> {
+        return await Promise.all(urls.map(url => this.fetchPage(url)));
+    }
+    constructor() {}
 }
