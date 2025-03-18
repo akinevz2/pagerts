@@ -7,15 +7,17 @@ export class LogStylePrinter extends AbstractResourcePrinter {
         process.stdout.write(str)
     }
 
-    async print(page: PageMetadata): Promise<void> {
-        const { resources, title, url } = page
+    async print(...pages: PageMetadata[]): Promise<void> {
+        for (const page of pages) {
+            const { resources, title, url } = page
 
-        this.write(`Title: ${title}\n`)
-        this.write(`URL: ${url}\n\n`)
+            this.write(`Title: ${title}\n`)
+            this.write(`URL: ${url}\n\n`)
 
-        for (const resource of resources) {
-            const { link: { href }, text: { value } } = resource
-            this.write(`${value}: ${href}\n`)
+            for (const resource of resources) {
+                const { link: { url }, text: { value } } = resource
+                this.write(`${value}: ${url}\n`)
+            }
         }
     }
 }

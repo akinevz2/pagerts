@@ -9,6 +9,14 @@
 
 type Tags = HTMLElementTagNameMap
 
+function findDefinedKey(element: Resource, keys: LinkKey[]): LinkKey | undefined {
+    for (const key of keys) {
+        if (isKeyDefined(key, element)) {
+            return key;
+        }
+    }
+}
+
 export const RESOURCE_DISPLAYABLE_KEYS = [
     'id',
     'innerText',
@@ -53,11 +61,9 @@ export function findResourceText(element: Resource): ResourceKey | undefined {
 
 export function findResourceLink(element: Resource): ResourceLink | undefined {
     const key = findDefinedKey(element, [...RESOURCE_LINK_KEYS]);
-    if (isKeyDefined(key, element)) {
-        const href = element[key];
-        if (href && typeof href === 'string' && href.trim() !== '')
-            return { key, url: href };
-    }
+    const url = element[key];
+    if (url && typeof url === 'string' && url.trim() !== '')
+        return { key, url };
 }
 
 export type ExternalResource = {
@@ -88,10 +94,3 @@ type test3 = HTMLDivElement extends Resource ? true : false // false
 
 type test4 = ResourceElement<Tags, "src">
 
-function findDefinedKey(element: Resource, keys: LinkKey[]): LinkKey | undefined {
-    for (const key of keys) {
-        if (isKeyDefined(key, element)) {
-            return key;
-        }
-    }
-}

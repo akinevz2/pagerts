@@ -1,4 +1,5 @@
 import { JSDOM, VirtualConsole } from 'jsdom';
+
 export class PageFetcher {
     async fetchPage(url: string): Promise<JSDOM> {
         const dom = await JSDOM.fromURL(url, {

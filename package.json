@@ -1,15 +1,15 @@
 {
-  "name": "treepage",
-  "description": "A webpage hierarchy management tool",
+  "name": "pagetree",
+  "description": "A tool for viewing external relations in a webpage",
   "version": "0.1.0",
   "main": "src/main",
   "scripts": {
     "test": "jest",
-    "build": "npx tsc",
+    "build": "esbuild src/main.ts --bundle --outdir=dist --minify --sourcemap --platform=node",
     "start": "node dist",
     "dev": "npx tsx src/main.ts"
   },
-  "bin": "treepage",
+  "bin": "pagetree",
   "keywords": [
     "webpage",
     "hierarchy",
@@ -25,15 +25,13 @@
     "blessed": "^0.1.81",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
-    "electron": "^33.0.2",
-    "jsdom": "^26.0.0",
-    "node-fetch": "^3.3.2",
-    "puppeteer": "^23.6.0"
+    "jsdom": "^26.0.0"
   },
   "devDependencies": {
     "@types/blessed": "^0.1.25",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.8.2",
+    "esbuild": "^0.25.1",
     "ts-node": "^10.9.2"
   }
 }

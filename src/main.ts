@@ -1,14 +1,15 @@
-import Commander from "commander";
+import { Command, createArgument } from "commander";
 
 import { description, name, version } from '../package.json';
 import { PageExtractor } from "./extractors/PageExtractor";
 import { ResourceExtractor } from "./extractors/ResourceExtractor";
 import { PageFetcher } from "./page/PageFetcher";
+import type { PageMetadata } from "./page/PageMetadata";
 import { JSONStylePrinter } from "./printers/JSONStylePrinter";
 
-const program = new Commander.Command();
+const program = new Command();
 
-const url = Commander.createArgument("<url|file...>", "remote URL or local file to extract remote resources from");
+const url = createArgument("<url|file...>", "remote URL or local file to extract remote resources from");
 
 (async () => {
   await program
@@ -22,14 +23,15 @@ const url = Commander.createArgument("<url|file...>", "remote URL or local file 
       const pageExtractor = new PageExtractor()
       const resourceExtractor = new ResourceExtractor(["a", "meta", "link", "embed"])
       const pagesFetched = await pageFetcher.fetchAll(urls);
+      const metadataPages:PageMetadata[] = []
       for (const page of pagesFetched) {
         const resources = await resourceExtractor.extract(page);
-        const pageDescriptor = await pageExtractor.extract(page);
-        const pageMetadata = {
-          ...pageDescriptor, resources
-        }
-        await printer.print(pageMetadata);
+        const descriptor = await pageExtractor.extract(page);
+        metadataPages.push({
+            ...descriptor, resources
+          });
       }
+      await printer.print(...metadataPages);
     })
     .parseAsync(process.argv);
 })();
