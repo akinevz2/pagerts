@@ -1,15 +1,16 @@
 {
-  "name": "pagetree",
+  "name": "pageget",
   "description": "A tool for viewing external relations in a webpage",
   "version": "0.1.0",
-  "main": "src/main",
+  "main": "dist/src/main.js",
   "scripts": {
     "test": "jest",
-    "build": "esbuild src/main.ts --bundle --outdir=dist --minify --sourcemap --platform=node",
-    "start": "node dist",
+    "esbuild": "esbuild src/main.ts --bundle --outdir=dist --minify --sourcemap --platform=node",
+    "build": "tsc",
+    "start": "node dist/src/main.js",
     "dev": "npx tsx src/main.ts"
   },
-  "bin": "pagetree",
+  "bin": "pagerts",
   "keywords": [
     "webpage",
     "hierarchy",
@@ -33,5 +34,6 @@
     "@types/node": "^22.8.2",
     "esbuild": "^0.25.1",
     "ts-node": "^10.9.2"
+    
   }
 }

@@ -7,6 +7,6 @@
         "sourceMap": true,
     },
     "include": [
-        "src/**.*"
-, "src/page/PageMetadata.ts", "src/printers/PagePrinter.ts", "src/properties/ExternalResource.ts", "src/resource.ts", "src/properties/Property.ts", "src/extractors/AbstractExtractor.ts", "src/extractors/ResourceExtractor.ts", "src/printers/AbstractResourcePrinter.ts", "src/extractors/ResourceExtractor.ts", "src/page/PageFetcher.ts"    ],
+        "src/**.*",
+    ],
 }
