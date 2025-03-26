@@ -10,7 +10,7 @@ export class PageFetcher {
         try {
             const dom = await JSDOM.fromURL(url, {
                 virtualConsole: new VirtualConsole().on('jsdomError', (error) => {
-                    console.error(`Error parsing ${url}:`, error.message);
+                    process.stderr.write(`Error parsing ${url}:${error.message}\n`);
                 })
             });
             return dom;
