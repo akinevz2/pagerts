@@ -1,4 +1,4 @@
-import type { PageMetadata } from '../page/PageMetadata';
+import { isPage, type Page, type PageMetadata } from '../page/PageMetadata';
 import { AbstractResourcePrinter } from './AbstractResourcePrinter';
 
 export class LogStylePrinter extends AbstractResourcePrinter {
@@ -9,7 +9,12 @@ export class LogStylePrinter extends AbstractResourcePrinter {
 
     async print(...pages: PageMetadata[]): Promise<void> {
         for (const page of pages) {
-            const { resources, title, url } = page
+            if (!isPage(page)) {
+                this.write(page.error.message)
+                continue
+            }
+
+            const {resources, title, url } = page
 
             this.write(`Title: ${title}\n`)
             this.write(`URL: ${url}\n\n`)

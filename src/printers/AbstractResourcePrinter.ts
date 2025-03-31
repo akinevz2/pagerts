@@ -1,6 +1,6 @@
-import type { Page } from "../page/PageMetadata";
+import type { Page, PageMetadata  } from "../page/Page";
 
 export abstract class AbstractResourcePrinter {
     constructor() {  }
-    abstract print(...pages: Page[]): void | Promise<void>;
+    abstract print(...pages: PageMetadata[]): void | Promise<void>;
 }
