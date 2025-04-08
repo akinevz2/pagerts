@@ -16,8 +16,8 @@ export class ResourceExtractor extends AbstractExtractor<JSDOM, ExternalResource
                 const text = findResourceText(element);
                 const link = findResourceLink(element);
                 if(!text || !link) continue
-                const externalResource: ExternalResource = {text,link}
-                externalResources.push(externalResource)
+                if (!link.url.startsWith("http")) continue
+                externalResources.push({ text, link })
             }
         }
         return externalResources;
