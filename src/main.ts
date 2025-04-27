@@ -7,6 +7,7 @@ import { ResourceExtractor } from "./extractors/ResourceExtractor";
 import { isJSDOM, PageFetcher, type PageResponse } from "./page/PageFetcher";
 import type { Page, PageMetadata } from "./page/Page";
 import { JSONStylePrinter } from "./printers/JSONStylePrinter";
+import { LogStylePrinter } from "./printers/LogStylePrinter";
 
 const program = new Command();
 
@@ -20,6 +21,8 @@ const url = createArgument("<url|file...>", "remote URL or local file to extract
     .addArgument(url)
     .action(async (urls: string[]) => {
       const printer = new JSONStylePrinter();
+      // simple log style printer
+      // const printer = new LogStylePrinter();
 
       const pageFetcher = new PageFetcher()
       const pageExtractor = new PageExtractor()
