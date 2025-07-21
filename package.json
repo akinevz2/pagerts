@@ -9,7 +9,7 @@
   "scripts": {
     "test": "jest",
     "build": "esbuild src/main.ts --external:jsdom --bundle --outdir=bin --minify --sourcemap --platform=node",
-    "tscbuild": "tsc",
+    "tsc": "tsc -b",
     "start": "node ./bin/main.js",
     "dev": "npx tsx src/main.ts"
   },
