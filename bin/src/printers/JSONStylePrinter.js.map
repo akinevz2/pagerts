@@ -1,1 +1,0 @@
-{"version":3,"file":"JSONStylePrinter.js","sourceRoot":"","sources":["../../../src/printers/JSONStylePrinter.ts"],"names":[],"mappings":";;;AACA,uEAAoE;AAGpE,MAAa,gBAAiB,SAAQ,iDAAuB;IACzD,KAAK,CAAC,GAAG,KAAqB;QAC1B,MAAM,IAAI,GAAG,IAAI,CAAC,SAAS,CAAC,KAAK,CAAC,CAAC;QACnC,OAAO,CAAC,MAAM,CAAC,KAAK,CAAC,IAAI,GAAG,IAAI,CAAC,CAAA;IACrC,CAAC;CAGJ;AAPD,4CAOC"}
