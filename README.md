@@ -1,24 +1,18 @@
 # README
 
-This project aims to develop an efficient application for downloading and presenting the user a list of resources that a webpage links to on the Internet.
+PagerTS is a command line utility that provides the user with a portable tool for transforming an URL into a JSON Object.
 
-PagerTS is a command line utility that provides the user with a portable tool for transforming an URL into a JSON Object. The output of this command represents the navigable items within a webpage.
+The output of this command contains all of navigable items one can navigate to within a webpage.
 
 ## Usage
 
-To use PagerTS, run it in the command line as:
+To use `pagerts` invoke it in the command line as:
 
 ```bash
-cd pagerts
-npm install
-pagerts -h
+pagerts https://website/page.html
 ```
 
-To run the application
-
-```bash
-npm start -- https?://...
-```
+There is also support for loading local system html resources.
 
 ## Output
 
@@ -30,13 +24,16 @@ The name is extracted from the readable text on the page.
 
 ## Installing
 
-The CLI can be installed using:
+The CLI can be installed using npm:
 
 ```bash
-cd pagerts
-git pull
-npm install -g ./
+npm i -g pagerts
+pagerts <url>
 ```
 
-It will be made available as a system-wide application under the name of `pagerts`
+Or run from npx:
+
+```bash
+npx pagerts <url>
+```
 
