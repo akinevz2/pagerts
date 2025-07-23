@@ -1,5 +1,4 @@
 import type { ExternalResource } from "../resource";
-import type { PageResponse } from "./PageFetcher";
 
 type hasTitle = {
     title: string;
