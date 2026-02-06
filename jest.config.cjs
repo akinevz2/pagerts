@@ -5,48 +5,70 @@
 
 /** @type {import('jest').Config} */
 const config = {
-  // All imported modules in your tests should be mocked automatically
-  // automock: false,
+  preset: 'ts-jest',
+  testEnvironment: 'node',
 
-  // Stop running tests after `n` failures
-  // bail: 0,
+  // Support for ES modules
+  extensionsToTreatAsEsm: ['.ts'],
 
-  // The directory where Jest should store its cached dependency information
-  // cacheDirectory: "/tmp/jest_rs",
+  // ts-jest configuration for ESM
+  globals: {
+    'ts-jest': {
+      useESM: true,
+      tsconfig: {
+        module: 'ES2022',
+        target: 'ES2022',
+        esModuleInterop: true,
+        moduleResolution: 'node',
+      },
+    },
+  },
+
+  // Module name mapper for package.json imports
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
 
   // Automatically clear mock calls, instances, contexts and results before every test
-  // clearMocks: false,
+  clearMocks: true,
 
   // Indicates whether the coverage information should be collected while executing the test
   collectCoverage: true,
 
-  // An array of glob patterns indicating a set of files for which coverage information should be collected
-  // collectCoverageFrom: undefined,
-
   // The directory where Jest should output its coverage files
-  coverageDirectory: "coverage",
-
-  // An array of regexp pattern strings used to skip coverage collection
-  // coveragePathIgnorePatterns: [
-  //   "/node_modules/"
-  // ],
+  coverageDirectory: 'coverage',
 
   // Indicates which provider should be used to instrument code for coverage
-  coverageProvider: "v8",
+  coverageProvider: 'v8',
 
-  // A list of reporter names that Jest uses when writing coverage reports
-  // coverageReporters: [
-  //   "json",
-  //   "text",
-  //   "lcov",
-  //   "clover"
-  // ],
+  // An array of glob patterns indicating a set of files for which coverage information should be collected
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts', '!src/**/*.spec.ts'],
 
-  // An object that configures minimum threshold enforcement for coverage results
-  // coverageThreshold: undefined,
+  // Coverage thresholds - realistic for current state, will improve over time
+  coverageThreshold: {
+    global: {
+      branches: 30,
+      functions: 35,
+      lines: 30,
+      statements: 30,
+    },
+  },
 
-  // A path to a custom dependency extractor
-  // dependencyExtractor: undefined,
+  // Test match patterns
+  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+
+  // Module file extensions
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+
+  // Transform files with ts-jest
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        useESM: true,
+      },
+    ],
+  },
 
   // Make calling deprecated APIs throw helpful error messages
   // errorOnDeprecated: false,
