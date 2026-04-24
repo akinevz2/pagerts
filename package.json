@@ -1,11 +1,14 @@
 {
   "name": "pagerts",
   "description": "A tool for viewing external relations in a webpage",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "main.js",
   "bin": {
     "pagerts": "bin/main.js"
   },
+  "files": [
+    "bin"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },
