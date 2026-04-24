@@ -1,6 +1,6 @@
 # PagerTS
 
-[![CI/CD](https://github.com/akinevz0/pagerts/workflows/CI%2FCD%20Security%20Pipeline/badge.svg)](https://github.com/akinevz0/pagerts/actions)
+[![CI/CD Security Pipeline](https://github.com/akinevz2/pagerts/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/akinevz2/pagerts/actions/workflows/ci.yml)
 [![Security](https://img.shields.io/badge/security-maintained-green.svg)](./SECURITY.md)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
