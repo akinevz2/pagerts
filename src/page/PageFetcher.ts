@@ -1,58 +1,58 @@
-import { JSDOM, VirtualConsole } from 'jsdom';
+import { readFile } from 'fs/promises';
+import { parseHTML } from 'linkedom';
 import { legacyHookDecode } from '@exodus/bytes/encoding.js';
+
+export interface DOMResult {
+  window: { document: Document };
+  url: string;
+}
 
 interface PageResponse {
   url: string;
-  content?: JSDOM;
+  content?: DOMResult;
   error?: string;
 }
 
 export class PageFetcher {
   private readonly timeout: number;
   private readonly maxRetries: number;
-  private readonly executeScripts: boolean;
 
-  constructor(timeout = 10000, maxRetries = 2, executeScripts = false) {
+  constructor(timeout = 10000, maxRetries = 2) {
     this.timeout = timeout;
     this.maxRetries = maxRetries;
-    this.executeScripts = executeScripts;
+  }
+
+  private buildDOMResult(html: string, url: string): DOMResult {
+    const { document } = parseHTML(html) as { document: Document };
+    return { window: { document }, url };
   }
 
   private async fetchPage(url: string, retryCount = 0): Promise<PageResponse> {
-    const virtualConsole = new VirtualConsole().on('jsdomError', (error: Error) => {
-      process.stderr.write(`Error parsing ${url}: ${error.message}\n`);
-    });
-
     try {
-      let dom: Promise<JSDOM>;
+      let domPromise: Promise<DOMResult>;
 
       if (url.startsWith('file://')) {
-        dom = JSDOM.fromFile(url.substring(7), { virtualConsole });
+        domPromise = readFile(url.substring(7), 'utf-8').then((html) =>
+          this.buildDOMResult(html, url)
+        );
       } else {
-        // Add timeout and security options for remote URLs
-        dom = fetch(url).then(async (response) => {
+        domPromise = fetch(url).then(async (response) => {
           const buffer = await response.arrayBuffer();
           const contentType = response.headers.get('content-type') ?? '';
           const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
           const html = legacyHookDecode(new Uint8Array(buffer), charsetMatch?.[1] ?? 'utf-8');
-          const executeScripts = this.executeScripts;
-          return new JSDOM(html, {
-            url,
-            virtualConsole,
-            resources: 'usable',
-            runScripts: executeScripts ? 'dangerously' : 'outside-only',
-          });
+          return this.buildDOMResult(html, url);
         });
       }
 
       const content = await (this.timeout > 0
         ? Promise.race([
-            dom,
+            domPromise,
             new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error('Request timeout')), this.timeout)
             ),
           ])
-        : dom);
+        : domPromise);
 
       return { url, content };
     } catch (error) {

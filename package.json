@@ -1,7 +1,7 @@
 {
   "name": "pagerts",
   "description": "A tool for viewing external relations in a webpage",
-  "version": "1.0.3",
+  "version": "1.3.0",
   "type": "module",
   "main": "main.js",
   "bin": {
@@ -36,20 +36,19 @@
     "cli",
     "url-extraction"
   ],
-  "author": "Kirill kn253 Nevzorov",
+  "author": "Kirill <kine> Nevzorov",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/akinevz0/pagerts/issues"
+    "url": "https://github.com/akinevz2/pagerts/issues"
   },
-  "homepage": "https://github.com/akinevz0/pagerts",
+  "homepage": "https://github.com/akinevz2/pagerts",
   "dependencies": {
     "@exodus/bytes": "^1.15.0",
     "commander": "^12.1.0",
-    "jsdom": "^25.0.1"
+    "linkedom": "^0.18.9"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "@types/jsdom": "^21.1.7",
     "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",

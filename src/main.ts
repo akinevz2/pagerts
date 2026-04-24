@@ -22,9 +22,8 @@ const url = createArgument(
     .version(version, '-v, --version')
     .description(description)
     .addArgument(url)
-    .addOption(new Option('--js', 'execute page scripts (allows JS-loaded elements; use only on trusted pages)').conflicts('watch'))
-    .addOption(new Option('--watch', 'keep running: SIGWINCH re-fetches after resize, Ctrl-D releases in-flight requests, Ctrl-C exits').conflicts('js'))
-    .action(async (urls: string[], options: { js: boolean; watch: boolean }) => {
+    .addOption(new Option('--watch', 'keep running: SIGWINCH re-fetches after resize, Ctrl-D releases in-flight requests, Ctrl-C exits'))
+    .action(async (urls: string[], options: { watch: boolean }) => {
       try {
         // Validate URLs first
         const { validUrls, errors } = validateUrls(urls);
@@ -47,7 +46,7 @@ const url = createArgument(
 
         const printer = new JSONStylePrinter();
         // watch mode is unbounded (timeout=0); default mode uses 10s timeout
-        const pageFetcher = new PageFetcher(options.watch ? 0 : 10000, 2, options.js);
+        const pageFetcher = new PageFetcher(options.watch ? 0 : 10000, 2);
         const pageExtractor = new PageExtractor();
         const resourceExtractor = new ResourceExtractor(['a', 'meta', 'link', 'embed', 'script']);
 
@@ -64,14 +63,7 @@ const url = createArgument(
                 : await pageExtractor.extract(content);
             pageMetadatas.push({ ...descriptor, resources });
 
-            if (options.js && error === undefined && content && 'title' in descriptor) {
-              const looksLikeSpa = !descriptor.title && resources.length === 0;
-              if (looksLikeSpa) {
-                process.stderr.write(
-                  `⚠️  ${responseUrl}: empty result with --js — page may be a client-side SPA whose bundles aren't loaded by jsdom. Consider a headless browser instead.\n`
-                );
-              }
-            }
+
           }
 
           await printer.print(...pageMetadatas);

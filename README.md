@@ -216,7 +216,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Author
 
-**Kirill kn253 Nevzorov**
+**Kirill <kine> Nevzorov**
 
 ## Support
 

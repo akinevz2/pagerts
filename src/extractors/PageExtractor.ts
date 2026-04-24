@@ -1,21 +1,14 @@
 import type { Page } from '../page/index.js';
-import { JSDOM } from 'jsdom';
+import type { DOMResult } from '../page/index.js';
 import { AbstractExtractor } from './AbstractExtractor.js';
 
-export class PageExtractor extends AbstractExtractor<JSDOM, Page> {
+export class PageExtractor extends AbstractExtractor<DOMResult, Page> {
   constructor() {
     super('page-extractor');
   }
 
-  async extract(value: JSDOM): Promise<Page> {
-    const {
-      window: {
-        document: {
-          title,
-          location: { href: url },
-        },
-      },
-    } = value;
-    return { title, url };
+  async extract(value: DOMResult): Promise<Page> {
+    const { window: { document }, url } = value;
+    return { title: document.title, url };
   }
 }
