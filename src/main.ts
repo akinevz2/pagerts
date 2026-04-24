@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command, createArgument } from 'commander';
 
-import pkg from '../package.json' with { type: 'json' };
+import pkg from '../package.json';
 import { PageExtractor, ResourceExtractor } from './extractors/index.js';
 import { PageFetcher, type PageMetadata } from './page/index.js';
 import { JSONStylePrinter } from './printers/index.js';
@@ -56,7 +56,7 @@ const url = createArgument(
             error !== undefined || !content ? [] : await resourceExtractor.extract(content);
           const descriptor =
             error !== undefined || !content
-              ? { url: responseUrl, error }
+              ? { url: responseUrl, error: error ?? 'Unknown error', resources }
               : await pageExtractor.extract(content);
           pageMetadatas.push({ ...descriptor, resources });
         }

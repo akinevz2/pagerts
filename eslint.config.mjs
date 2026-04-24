@@ -5,6 +5,9 @@ import security from 'eslint-plugin-security';
 import prettier from 'eslint-config-prettier';
 
 export default [
+  {
+    ignores: ['bin/**', 'coverage/**', 'node_modules/**'],
+  },
   eslint.configs.recommended,
   {
     files: ['src/**/*.ts'],
@@ -13,7 +16,7 @@ export default [
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: 'module',
-        project: './tsconfig.json',
+        project: './tsconfig.eslint.json',
       },
       globals: {
         console: 'readonly',
@@ -28,6 +31,10 @@ export default [
       security: security,
     },
     rules: {
+      // Disable base JS rules in favor of TS-aware equivalents
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
+
       // TypeScript rules
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-function-return-type': 'warn',
@@ -58,6 +65,18 @@ export default [
       'no-new-func': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
+    },
+  },
+  {
+    files: ['src/__tests__/**/*.ts'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        setTimeout: 'readonly',
+      },
     },
   },
   prettier,

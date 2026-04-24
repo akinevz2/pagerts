@@ -72,7 +72,7 @@ export type ExternalResource = {
 
 export const isResourceKey = (key: string): key is LinkKey => key in RESOURCE_LINK_KEYS;
 
-export const isKeyDefined = <E extends Tags[keyof Tags]>(key: string, element: E): boolean =>
+export const isKeyDefined = (key: DisplayableKey | LinkKey, element: Resource): boolean =>
   key in element && element[key] !== undefined;
 
 export type ResourceElement<T, U> = {
@@ -81,14 +81,8 @@ export type ResourceElement<T, U> = {
 
 export type Tag = keyof Tags;
 
-export type Resource = ResourceElement<Tags, (typeof RESOURCE_LINK_KEYS)[number]>;
+export type Resource = HTMLElement & {
+  [K in DisplayableKey | LinkKey]?: string | null;
+};
 
 export type ResourceByName<T extends keyof Tags> = Tags[T];
-
-/** tests **/
-
-type test1 = HTMLAnchorElement extends Resource ? true : false; // true
-type test2 = HTMLImageElement extends Resource ? true : false; // true
-type test3 = HTMLDivElement extends Resource ? true : false; // false
-
-type test4 = ResourceElement<Tags, 'src'>;

@@ -11,19 +11,6 @@ const config = {
   // Support for ES modules
   extensionsToTreatAsEsm: ['.ts'],
 
-  // ts-jest configuration for ESM
-  globals: {
-    'ts-jest': {
-      useESM: true,
-      tsconfig: {
-        module: 'ES2022',
-        target: 'ES2022',
-        esModuleInterop: true,
-        moduleResolution: 'node',
-      },
-    },
-  },
-
   // Module name mapper for package.json imports
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
@@ -66,6 +53,12 @@ const config = {
       'ts-jest',
       {
         useESM: true,
+        tsconfig: {
+          module: 'ES2022',
+          target: 'ES2022',
+          esModuleInterop: true,
+          moduleResolution: 'node',
+        },
       },
     ],
   },

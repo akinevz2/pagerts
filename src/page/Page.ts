@@ -13,7 +13,12 @@ type hasResources = {
 };
 
 export type Page = hasTitle & hasUrl;
-export type PageMetadata = (Page & hasResources) | { error: string };
-export const isError = (page: PageMetadata): page is { error: string } => 'error' in page;
-export const isPage = (page: any): page is Page =>
-  'resources' in page && Array.isArray(page.resources);
+
+export type PageSuccess = Page & hasResources;
+export type PageFailure = hasUrl & hasResources & { error: string };
+export type PageMetadata = PageSuccess | PageFailure;
+
+export const isError = (page: PageMetadata): page is PageFailure => 'error' in page;
+
+export const isPage = (page: PageMetadata): page is PageSuccess =>
+  'title' in page && typeof page.title === 'string' && Array.isArray(page.resources);
