@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command, createArgument } from 'commander';
 
-import pkg from '../package.json';
+import pkg from '../package.json' with { type: 'json' };
 import { PageExtractor, ResourceExtractor } from './extractors/index.js';
 import { PageFetcher, type PageMetadata } from './page/index.js';
 import { JSONStylePrinter } from './printers/index.js';
