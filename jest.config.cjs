@@ -47,6 +47,9 @@ const config = {
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 
+  // Allow Jest to transform @exodus/bytes (pure ESM package) through Babel
+  transformIgnorePatterns: ['/node_modules/(?!@exodus/bytes/)'],
+
   // Transform files with ts-jest
   transform: {
     '^.+\\.ts$': [

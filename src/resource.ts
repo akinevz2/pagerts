@@ -8,16 +8,6 @@
  */
 type Tags = HTMLElementTagNameMap;
 
-function findDefinedKey(element: Resource, keys: LinkKey[]): LinkKey | undefined {
-  for (const key of keys) {
-    if (isKeyDefined(key, element)) {
-      return key;
-    }
-  }
-
-  return undefined;
-}
-
 export const RESOURCE_DISPLAYABLE_KEYS = [
   'id',
   'innerText',
@@ -30,59 +20,51 @@ export const RESOURCE_DISPLAYABLE_KEYS = [
 
 export type DisplayableKey = (typeof RESOURCE_DISPLAYABLE_KEYS)[number];
 
-export type ResourceKey = {
-  key: DisplayableKey;
-  value: string;
-};
-
 export const RESOURCE_LINK_KEYS = ['href', 'data-src', 'target', 'action', 'src', 'url'] as const;
 
 export type LinkKey = (typeof RESOURCE_LINK_KEYS)[number];
 
-export type ResourceLink = {
-  key: LinkKey;
-  url: string;
-};
+export type AttributeKey = DisplayableKey | LinkKey;
 
-export function findResourceText(element: Resource): ResourceKey | undefined {
-  for (const key of RESOURCE_DISPLAYABLE_KEYS) {
-    const value = element[key];
-    if (value && typeof value === 'string' && value.trim() !== '') return { key, value };
-  }
-
-  return undefined;
-}
-
-export function findResourceLink(element: Resource): ResourceLink | undefined {
-  const key = findDefinedKey(element, [...RESOURCE_LINK_KEYS]);
-  if (!key) {
-    return undefined;
-  }
-
-  const url = element[key];
-  if (url && typeof url === 'string' && url.trim() !== '') return { key, url };
-
-  return undefined;
-}
+export type ResourceKey = { key: AttributeKey; value: string };
+export type ResourceLink = { key: LinkKey; value: string };
 
 export type ExternalResource = {
   text: ResourceKey;
   link: ResourceLink;
 };
 
-export const isResourceKey = (key: string): key is LinkKey => key in RESOURCE_LINK_KEYS;
-
-export const isKeyDefined = (key: DisplayableKey | LinkKey, element: Resource): boolean =>
-  key in element && element[key] !== undefined;
-
-export type ResourceElement<T, U> = {
-  [K in keyof T]: U extends keyof T[K] ? T[K] : never;
-}[keyof T];
-
 export type Tag = keyof Tags;
 
 export type Resource = HTMLElement & {
-  [K in DisplayableKey | LinkKey]?: string | null;
+  [K in AttributeKey]?: string | null;
 };
 
 export type ResourceByName<T extends keyof Tags> = Tags[T];
+
+// --- adapters ---
+
+const readAttr = (element: Resource, key: AttributeKey): string | undefined => {
+  const v = element.getAttribute(key);
+  return v != null && v.trim() !== '' ? v : undefined;
+};
+
+export function findResourceText(element: Resource): ResourceKey | undefined {
+  for (const key of RESOURCE_DISPLAYABLE_KEYS) {
+    const value = readAttr(element, key);
+    if (value !== undefined) return { key, value };
+  }
+  return undefined;
+}
+
+export function findResourceLink(element: Resource): ResourceLink | undefined {
+  for (const key of RESOURCE_LINK_KEYS) {
+    const value = readAttr(element, key);
+    if (value !== undefined) return { key, value };
+  }
+  return undefined;
+}
+
+export const isResourceKey = (key: string): key is AttributeKey =>
+  (RESOURCE_DISPLAYABLE_KEYS as readonly string[]).includes(key) ||
+  (RESOURCE_LINK_KEYS as readonly string[]).includes(key);

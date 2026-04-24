@@ -43,6 +43,7 @@
   },
   "homepage": "https://github.com/akinevz0/pagerts",
   "dependencies": {
+    "@exodus/bytes": "^1.15.0",
     "commander": "^12.1.0",
     "jsdom": "^25.0.1"
   },

@@ -20,7 +20,7 @@ export class LogStylePrinter extends AbstractResourcePrinter {
 
       for (const resource of resources) {
         const {
-          link: { url },
+          link: { value: url },
           text: { value },
         } = resource;
         this.write(`${value}: ${url}\n`);

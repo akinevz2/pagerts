@@ -14,18 +14,13 @@ export class ResourceExtractor extends AbstractExtractor<JSDOM, ExternalResource
   }
   async extract(value: JSDOM): Promise<ExternalResource[]> {
     const { document } = value.window;
-    const externalResources: ExternalResource[] = [];
-    for (const tag of this.tags) {
-      const selector = document.querySelectorAll<Resource>(tag);
-      const elements = Array.from(selector);
-      for (const element of elements) {
-        const text = findResourceText(element);
+    return this.tags.flatMap((tag) =>
+      Array.from(document.querySelectorAll<Resource>(tag)).flatMap((element) => {
         const link = findResourceLink(element);
-        if (!text || !link) continue;
-        if (!link.url.startsWith('http')) continue;
-        externalResources.push({ text, link });
-      }
-    }
-    return externalResources;
+        if (!link) return [];
+        const text = findResourceText(element) ?? { key: 'src' as const, value: link.value };
+        return [{ text, link }];
+      })
+    );
   }
 }
