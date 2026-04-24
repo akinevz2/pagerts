@@ -12,7 +12,7 @@
   "scripts": {
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "build": "esbuild src/main.ts --external:jsdom --bundle --outdir=bin --minify --sourcemap --platform=node --format=esm",
+    "build": "esbuild src/main.ts --bundle --packages=external --outdir=bin --minify --sourcemap --platform=node --format=esm",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
