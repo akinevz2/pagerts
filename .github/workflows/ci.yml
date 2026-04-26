@@ -5,18 +5,29 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  # Manual trigger for incident response and quick validation.
+  workflow_dispatch:
   schedule:
     # Run security checks daily at 00:00 UTC
     - cron: "0 0 * * *"
 
+# Cancel stale runs on the same ref to reduce queue noise and spend.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-  security-events: write
+
+# Opt actions runtime into Node 24 now to avoid Node 20 deprecation cliff.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -31,17 +42,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-
+      # Blocking security gate: fail CI when moderate+ vulnerabilities are detected.
       - name: Check for dependency vulnerabilities
         run: npm run security:audit
-        continue-on-error: true
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          node --version
+          npm --version
+          npm config get cache
 
   lint-and-format:
     name: Lint and Format Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -65,13 +80,22 @@ jobs:
       - name: TypeScript type check
         run: npm run type-check
 
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          node --version
+          npm --version
+          npx tsc --version
+
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        # Keep matrix aligned with package engines (>=20).
+        node-version: [20.x, 22.x]
 
     steps:
       - name: Checkout code
@@ -90,16 +114,25 @@ jobs:
         run: npm test
 
       - name: Upload coverage reports
-        if: matrix.node-version == '20.x'
+        # Restrict uploads to trusted push events to avoid fork PR token/OIDC issues.
+        if: matrix.node-version == '20.x' && github.event_name == 'push'
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage/coverage-final.json
           fail_ci_if_error: false
 
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          node --version
+          npm --version
+          npx jest --version
+
   build:
     name: Build
     runs-on: ubuntu-latest
     needs: [security-audit, lint-and-format, test]
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -124,9 +157,16 @@ jobs:
           path: bin/
           retention-days: 7
 
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          node --version
+          npm --version
+
   codeql-analysis:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       actions: read
       contents: read
@@ -144,3 +184,9 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          node --version
+          npm --version
