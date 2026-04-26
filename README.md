@@ -2,7 +2,7 @@
 
 [![CI/CD Security Pipeline](https://github.com/akinevz2/pagerts/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/akinevz2/pagerts/actions/workflows/ci.yml)
 [![Security](https://img.shields.io/badge/security-maintained-green.svg)](./SECURITY.md)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 PagerTS is a secure, modern command-line utility that transforms URLs into structured JSON objects, extracting all navigable items and resources from webpages.
@@ -11,7 +11,7 @@ PagerTS is a secure, modern command-line utility that transforms URLs into struc
 
 - 🔒 **Security-First**: Built-in URL validation, rate limiting, and XSS protection
 - 🚀 **Modern TypeScript**: Strict type checking and modern ES2022 syntax
-- ⚡ **Fast**: Efficient parsing with JSDOM and concurrent request handling
+- ⚡ **Fast**: Efficient parsing with LinkeDOM and concurrent request handling
 - 🧪 **Well-Tested**: Comprehensive test coverage with Jest
 - 📦 **Easy to Use**: Simple CLI interface with sensible defaults
 
@@ -110,7 +110,7 @@ PagerTS takes security seriously. See [SECURITY.md](./SECURITY.md) for:
 
 ### Prerequisites
 
-- Node.js >= 18.0.0
+- Node.js >= 20.0.0
 - npm >= 9.0.0
 
 ### Setup

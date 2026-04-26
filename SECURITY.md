@@ -27,7 +27,7 @@ PagerTS implements several security measures to protect users:
 
 ### Safe HTML Parsing
 
-- JSDOM is configured to run in secure mode
+- LinkeDOM is used for DOM parsing in a non-executing context
 - JavaScript execution from fetched pages is disabled
 - Timeouts prevent hanging on slow resources
 - Retry logic with exponential backoff for transient failures

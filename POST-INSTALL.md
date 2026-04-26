@@ -41,7 +41,7 @@ This document summarizes the comprehensive modernization and security improvemen
 
 - ✅ Request timeouts (10 seconds default)
 - ✅ Retry logic with exponential backoff
-- ✅ Safe JSDOM configuration (no script execution)
+- ✅ Safe LinkeDOM parsing (no script execution)
 - ✅ Disabled setTimeout/setInterval in fetched pages
 - ✅ Error handling with detailed logging
 
@@ -88,7 +88,7 @@ Built successfully with esbuild
 | URL Validation      | ✅     | Validates and sanitizes all input URLs   |
 | Rate Limiting       | ✅     | Prevents abuse with configurable limits  |
 | XSS Protection      | ✅     | HTML sanitization and output escaping    |
-| Safe Parsing        | ✅     | JSDOM configured to not execute scripts  |
+| Safe Parsing        | ✅     | LinkeDOM parsing with no script execution |
 | Timeout Protection  | ✅     | Prevents hanging on slow resources       |
 | Error Handling      | ✅     | Graceful error handling with retry logic |
 | Dependency Security | ✅     | All dependencies audited and updated     |
