@@ -226,17 +226,16 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Changelog
 
-### v0.3.0 (Latest)
+### v0.3.0 -> v1.4.1 summary
 
-- ✨ Added comprehensive security features
-- ✨ Implemented URL validation and sanitization
-- ✨ Added rate limiting
-- ✨ Modernized codebase with TypeScript strict mode
-- ✨ Added ESLint with security plugin
-- ✨ Added comprehensive test suite
-- ✨ Added CI/CD with GitHub Actions
-- ✨ Improved error handling and retry logic
-- 📚 Added security documentation
+Key changes in this range:
+
+- Security hardening and dependency-surface reduction (`863389a`).
+- CI/security gate tightening and scan-noise cleanup (`da73bdb`, `46875e8`).
+- Packaging/runtime interoperability fixes for CJS/ESM builds and publishes (`4054ab9`, `74d3f98`, `64b2a2f`, `e67acd6`).
+- Regression fix for ignored script resources (`bc13b55`).
+- Dependency tree refresh/stabilization (`1f8f86d`) and release bump to `v1.4.1` (`8846bec`).
+- General code hardening and cleanup across extractors/fetching/printers, plus lockfile and build artifact maintenance in the same span.
 
 ### v0.2.0
 
