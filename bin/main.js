@@ -1,12 +1,361 @@
 #!/usr/bin/env node
-import{Command as q,createArgument as _,Option as $}from"commander";var w={name:"pagerts",description:"A tool for viewing external relations in a webpage",version:"1.3.0",type:"module",main:"main.js",bin:{pagerts:"bin/main.js"},files:["bin"],engines:{node:">=18.0.0"},scripts:{test:"jest --coverage","test:watch":"jest --watch",build:"esbuild src/main.ts --bundle --packages=external --outdir=bin --minify --sourcemap --platform=node --format=esm",lint:"eslint src/**/*.ts","lint:fix":"eslint src/**/*.ts --fix","type-check":"tsc --noEmit",format:'prettier --write "src/**/*.ts"',"format:check":'prettier --check "src/**/*.ts"',"security:audit":"npm audit --audit-level=moderate","security:check":"npm run security:audit && npm run lint",start:"node ./bin/main.js",dev:"tsx src/main.ts",prepare:"npm run build"},keywords:["webpage","hierarchy","management","web-scraping","cli","url-extraction"],author:"Kirill <kine> Nevzorov",license:"MIT",bugs:{url:"https://github.com/akinevz2/pagerts/issues"},homepage:"https://github.com/akinevz2/pagerts",dependencies:{"@exodus/bytes":"^1.15.0",commander:"^12.1.0",linkedom:"^0.18.9"},devDependencies:{"@types/jest":"^29.5.14","@types/node":"^22.10.5","@typescript-eslint/eslint-plugin":"^8.20.0","@typescript-eslint/parser":"^8.20.0",esbuild:"^0.25.1",eslint:"^9.18.0","eslint-config-prettier":"^9.1.0","eslint-plugin-security":"^3.0.1",jest:"^29.7.0",prettier:"^3.4.2","ts-jest":"^29.2.5",tsx:"^4.19.2",typescript:"^5.7.2"}};var u=class{constructor(t){this.name=t}};var d=class extends u{constructor(){super("page-extractor")}async extract(t){let{window:{document:e},url:r}=t;return{title:e.title,url:r}}};var L=["id","innerText","textContent","class","ariaLabel","ariaDescription","alt"],k=["href","data-src","target","action","src","url"],P=(s,t)=>{let e=s.getAttribute(t);return e!=null&&e.trim()!==""?e:void 0};function b(s){for(let t of L){let e=P(s,t);if(e!==void 0)return{key:t,value:e}}}function v(s){for(let t of k){let e=P(s,t);if(e!==void 0)return{key:t,value:e}}}var g=class extends u{constructor(e){super("page-extractor");this.tags=e}async extract(e){let{document:r}=e.window;return this.tags.flatMap(o=>Array.from(r.querySelectorAll(o)).flatMap(i=>{let a=v(i);return a?[{text:b(i)??{key:"src",value:a.value},link:a}]:[]}))}};import{readFile as O}from"fs/promises";import{parseHTML as D}from"linkedom";import{legacyHookDecode as S}from"@exodus/bytes/encoding.js";var f=class{timeout;maxRetries;constructor(t=1e4,e=2){this.timeout=t,this.maxRetries=e}buildDOMResult(t,e){let{document:r}=D(t);return{window:{document:r},url:e}}async fetchPage(t,e=0){try{let r;t.startsWith("file://")?r=O(t.substring(7),"utf-8").then(i=>this.buildDOMResult(i,t)):r=fetch(t).then(async i=>{let a=await i.arrayBuffer(),x=i.headers.get("content-type")??"",m=/charset=([^\s;]+)/i.exec(x),n=S(new Uint8Array(a),m?.[1]??"utf-8");return this.buildDOMResult(n,t)});let o=await(this.timeout>0?Promise.race([r,new Promise((i,a)=>setTimeout(()=>a(new Error("Request timeout")),this.timeout))]):r);return{url:t,content:o}}catch(r){let o=r instanceof Error?r.message:"Unknown error";return e<this.maxRetries&&this.isRetryableError(o)?(process.stderr.write(`Retrying ${t} (attempt ${e+1}/${this.maxRetries})...
-`),await this.delay(1e3*(e+1)),this.fetchPage(t,e+1)):{url:t,error:`Failed to fetch: ${o}`}}}isRetryableError(t){return[/timeout/i,/ECONNRESET/i,/ETIMEDOUT/i,/ENOTFOUND/i,/network/i].some(r=>r.test(t))}delay(t){return new Promise(e=>setTimeout(e,t))}async fetchAll(t){return(await Promise.all(t.map(r=>this.fetchPage(r)))).filter(r=>r.content!==void 0||r.error)}};var p=class{constructor(){}};var y=class extends p{print(...t){let e=JSON.stringify(t);process.stdout.write(e+`
-`)}};var E=["http:","https:","file:"];var K=[/javascript:/i,/data:/i,/vbscript:/i,/<script/i,/on\w+=/i];function N(s){if(!s||!s.trim())return{isValid:!1,error:"URL cannot be empty"};let t=s.trim();if(t.length>2048)return{isValid:!1,error:"URL exceeds maximum length of 2048 characters"};for(let i of K)if(i.test(t))return{isValid:!1,error:"URL contains suspicious patterns"};let e;try{e=new URL(t)}catch{return t.startsWith("file://")?{isValid:!0,sanitizedUrl:t}:{isValid:!1,error:"Invalid URL format"}}if(!E.includes(e.protocol))return{isValid:!1,error:`Protocol ${e.protocol} is not allowed. Allowed protocols: ${E.join(", ")}`};let r=e.hostname.toLowerCase();return(r==="localhost"||r==="127.0.0.1"||r==="::1"||r.startsWith("192.168.")||r.startsWith("10.")||/^172\.(1[6-9]|2\d|3[01])\./.test(r))&&e.protocol!=="file:"&&console.warn(`Warning: Accessing local network resource: ${t}`),{isValid:!0,sanitizedUrl:e.toString()}}function M(s){let t=[],e=[];for(let r of s){let o=N(r);o.isValid&&o.sanitizedUrl?t.push(o.sanitizedUrl):e.push({url:r,error:o.error||"Unknown validation error"})}return{validUrls:t,errors:e}}var{description:I,name:V,version:C}=w,z=new q,F=_("<url | file...>","remote https://URL or local file://resource.html to extract from");(async()=>await z.name(V).version(C,"-v, --version").description(I).addArgument(F).addOption(new $("--watch","keep running: SIGWINCH re-fetches after resize, Ctrl-D releases in-flight requests, Ctrl-C exits")).action(async(s,t)=>{try{let{validUrls:e,errors:r}=M(s);r.length>0&&(console.error(`
-\u274C URL Validation Errors:`),r.forEach(({url:n,error:c})=>{console.error(`  - ${n}: ${c}`)})),e.length===0&&(console.error(`
-\u274C No valid URLs to process. Exiting.`),process.exit(1)),console.error(`
-\u2705 Processing ${e.length} valid URL(s)...`);let o=new y,i=new f(t.watch?0:1e4,2),a=new d,x=new g(["a","meta","link","embed","script"]),m=async()=>{let n=await i.fetchAll(e),c=[];for(let{content:l,url:T,error:h}of n){let R=h!==void 0||!l?[]:await x.extract(l),U=h!==void 0||!l?{url:T,error:h??"Unknown error",resources:R}:await a.extract(l);c.push({...U,resources:R})}await o.print(...c)};if(t.watch){process.stdin.resume(),process.on("SIGINT",()=>{process.exit(0)});let n=null;process.stdin.on("end",()=>{n=null});let c=null;process.on("SIGWINCH",()=>{c!==null&&clearTimeout(c),c=setTimeout(()=>{c=null,n=m().catch(l=>{console.error(`
-\u274C An error occurred:`,l instanceof Error?l.message:l)})},150)}),n=m(),await n}else await m()}catch(e){console.error(`
-\u274C An error occurred:`,e instanceof Error?e.message:e),process.exit(1)}}).parseAsync(process.argv))();
+
+// src/main.ts
+import { Command, createArgument, Option } from "commander";
+import { createRequire } from "node:module";
+
+// src/extractors/AbstractExtractor.ts
+var AbstractExtractor = class {
+  constructor(name2) {
+    this.name = name2;
+  }
+};
+
+// src/extractors/PageExtractor.ts
+var PageExtractor = class extends AbstractExtractor {
+  constructor() {
+    super("page-extractor");
+  }
+  async extract(value) {
+    const {
+      window: { document },
+      url
+    } = value;
+    return { title: document.title, url };
+  }
+};
+
+// src/resource.ts
+var RESOURCE_DISPLAYABLE_KEYS = [
+  "id",
+  "innerText",
+  "textContent",
+  "class",
+  "ariaLabel",
+  "ariaDescription",
+  "alt"
+];
+var RESOURCE_LINK_KEYS = ["href", "data-src", "target", "action", "src", "url"];
+var readAttr = (element, key) => {
+  const v = element.getAttribute(key);
+  return v != null && v.trim() !== "" ? v : void 0;
+};
+function findResourceText(element) {
+  for (const key of RESOURCE_DISPLAYABLE_KEYS) {
+    const value = readAttr(element, key);
+    if (value !== void 0) return { key, value };
+  }
+  return void 0;
+}
+function findResourceLink(element) {
+  for (const key of RESOURCE_LINK_KEYS) {
+    const value = readAttr(element, key);
+    if (value !== void 0) return { key, value };
+  }
+  return void 0;
+}
+
+// src/extractors/ResourceExtractor.ts
+var ResourceExtractor = class extends AbstractExtractor {
+  constructor(tags) {
+    super("page-extractor");
+    this.tags = tags;
+  }
+  async extract(value) {
+    const { document } = value.window;
+    return this.tags.flatMap(
+      (tag) => Array.from(document.querySelectorAll(tag)).flatMap((element) => {
+        const link = findResourceLink(element);
+        if (!link) return [];
+        const text = findResourceText(element) ?? { key: "src", value: link.value };
+        return [{ text, link }];
+      })
+    );
+  }
+};
+
+// src/page/PageFetcher.ts
+import { parseHTML } from "linkedom";
+var PageFetcher = class {
+  timeout;
+  maxRetries;
+  constructor(timeout = 1e4, maxRetries = 2) {
+    this.timeout = timeout;
+    this.maxRetries = maxRetries;
+  }
+  buildDOMResult(html, url) {
+    const { document } = parseHTML(html);
+    return { window: { document }, url };
+  }
+  decodeHtml(buffer, charset) {
+    try {
+      return new TextDecoder(charset).decode(new Uint8Array(buffer));
+    } catch {
+      return new TextDecoder("utf-8").decode(new Uint8Array(buffer));
+    }
+  }
+  async fetchPage(url, retryCount = 0) {
+    try {
+      const domPromise = fetch(url).then(async (response) => {
+        const buffer = await response.arrayBuffer();
+        const contentType = response.headers.get("content-type") ?? "";
+        const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
+        const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? "utf-8");
+        return this.buildDOMResult(html, url);
+      });
+      const content = await (this.timeout > 0 ? Promise.race([
+        domPromise,
+        new Promise(
+          (_, reject) => setTimeout(() => reject(new Error("Request timeout")), this.timeout)
+        )
+      ]) : domPromise);
+      return { url, content };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      if (retryCount < this.maxRetries && this.isRetryableError(message)) {
+        process.stderr.write(`Retrying ${url} (attempt ${retryCount + 1}/${this.maxRetries})...
+`);
+        await this.delay(1e3 * (retryCount + 1));
+        return this.fetchPage(url, retryCount + 1);
+      }
+      return { url, error: `Failed to fetch: ${message}` };
+    }
+  }
+  isRetryableError(message) {
+    const retryablePatterns = [/timeout/i, /ECONNRESET/i, /ETIMEDOUT/i, /ENOTFOUND/i, /network/i];
+    return retryablePatterns.some((pattern) => pattern.test(message));
+  }
+  delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  async fetchAll(urls) {
+    const responses = await Promise.all(urls.map((url) => this.fetchPage(url)));
+    return responses.filter((response) => response.content !== void 0 || response.error);
+  }
+};
+
+// src/page/FileFetcher.ts
+import { readFile } from "node:fs/promises";
+import { parseHTML as parseHTML2 } from "linkedom";
+var MAX_FILES_FAILSAFE = 254;
+var FileFetcher = class {
+  buildDOMResult(html, filePath) {
+    const { document } = parseHTML2(html);
+    return { window: { document }, url: `file://${filePath}` };
+  }
+  async fetchFile(filePath) {
+    try {
+      const html = await readFile(filePath, "utf-8");
+      return { path: filePath, content: this.buildDOMResult(html, filePath) };
+    } catch (error) {
+      return {
+        path: filePath,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  async fetchAll(filePaths) {
+    return Promise.all(filePaths.map((p) => this.fetchFile(p)));
+  }
+};
+
+// src/printers/AbstractResourcePrinter.ts
+var AbstractResourcePrinter = class {
+  constructor() {
+  }
+};
+
+// src/printers/JSONStylePrinter.ts
+var JSONStylePrinter = class extends AbstractResourcePrinter {
+  print(...pages) {
+    const json = JSON.stringify(pages);
+    process.stdout.write(json + "\n");
+  }
+};
+
+// src/security.ts
+var ALLOWED_PROTOCOLS = ["http:", "https:"];
+var MAX_URL_LENGTH = 2048;
+var SUSPICIOUS_PATTERNS = [
+  /javascript:/i,
+  /data:/i,
+  /vbscript:/i,
+  /<script/i,
+  /on\w+=/i
+  // Event handlers like onclick=
+];
+function validateUrl(url) {
+  if (!url || !url.trim()) {
+    return {
+      isValid: false,
+      error: "URL cannot be empty"
+    };
+  }
+  const trimmedUrl = url.trim();
+  if (trimmedUrl.length > MAX_URL_LENGTH) {
+    return {
+      isValid: false,
+      error: `URL exceeds maximum length of ${MAX_URL_LENGTH} characters`
+    };
+  }
+  for (const pattern of SUSPICIOUS_PATTERNS) {
+    if (pattern.test(trimmedUrl)) {
+      return {
+        isValid: false,
+        error: "URL contains suspicious patterns"
+      };
+    }
+  }
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(trimmedUrl);
+  } catch {
+    return {
+      isValid: false,
+      error: "Invalid URL format"
+    };
+  }
+  if (!ALLOWED_PROTOCOLS.includes(parsedUrl.protocol)) {
+    return {
+      isValid: false,
+      error: `Protocol ${parsedUrl.protocol} is not allowed. Allowed protocols: ${ALLOWED_PROTOCOLS.join(", ")}`
+    };
+  }
+  const hostname = parsedUrl.hostname.toLowerCase();
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname.startsWith("192.168.") || hostname.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+  if (isLocalhost) {
+    console.warn(`Warning: Accessing local network resource: ${trimmedUrl}`);
+  }
+  return {
+    isValid: true,
+    sanitizedUrl: parsedUrl.toString()
+  };
+}
+function validateUrls(urls) {
+  const validUrls = [];
+  const errors = [];
+  for (const url of urls) {
+    const result = validateUrl(url);
+    if (result.isValid && result.sanitizedUrl) {
+      validUrls.push(result.sanitizedUrl);
+    } else {
+      errors.push({
+        url,
+        error: result.error || "Unknown validation error"
+      });
+    }
+  }
+  return { validUrls, errors };
+}
+
+// src/main.ts
+var require2 = createRequire(import.meta.url);
+var pkg = require2("../package.json");
+var { description, name, version } = pkg;
+var program = new Command();
+var urlArg = createArgument("<url...>", "remote https://URL to extract from");
+var fileArg = createArgument("<paths...>", "local file paths to extract from");
+var pageExtractor = new PageExtractor();
+var resourceExtractor = new ResourceExtractor(["a", "meta", "link", "embed", "script"]);
+var printer = new JSONStylePrinter();
+async function buildPageMetadata(responses) {
+  const pageMetadatas = [];
+  for (const { content, url: responseUrl, path, error } of responses) {
+    const resolvedUrl = responseUrl ?? path ?? "";
+    const resources = error !== void 0 || !content ? [] : await resourceExtractor.extract(content);
+    const descriptor = error !== void 0 || !content ? { url: resolvedUrl, error: error ?? "Unknown error", resources } : await pageExtractor.extract(content);
+    pageMetadatas.push({ ...descriptor, resources });
+  }
+  return pageMetadatas;
+}
+(async () => {
+  program.name(name).version(version, "-v, --version").description(description);
+  program.command("fetch", { isDefault: true }).description("fetch and extract resources from remote URL(s)").addArgument(urlArg).addOption(
+    new Option(
+      "--watch",
+      "keep running: SIGWINCH re-fetches after resize, Ctrl-D releases in-flight requests, Ctrl-C exits"
+    )
+  ).action(async (urls, options) => {
+    try {
+      const { validUrls, errors } = validateUrls(urls);
+      if (errors.length > 0) {
+        console.error("\n\u274C URL Validation Errors:");
+        errors.forEach(({ url: invalidUrl, error }) => {
+          console.error(`  - ${invalidUrl}: ${error}`);
+        });
+      }
+      if (validUrls.length === 0) {
+        console.error("\n\u274C No valid URLs to process. Exiting.");
+        process.exit(1);
+      }
+      console.error(`
+\u2705 Processing ${validUrls.length} valid URL(s)...`);
+      const pageFetcher = new PageFetcher(options.watch ? 0 : 1e4, 2);
+      const execute = async () => {
+        const responses = await pageFetcher.fetchAll(validUrls);
+        const pageMetadatas = await buildPageMetadata(responses);
+        await printer.print(...pageMetadatas);
+      };
+      if (options.watch) {
+        process.stdin.resume();
+        process.on("SIGINT", () => process.exit(0));
+        let activeExecution = null;
+        process.stdin.on("end", () => {
+          activeExecution = null;
+        });
+        let winchTimer = null;
+        process.on("SIGWINCH", () => {
+          if (winchTimer !== null) clearTimeout(winchTimer);
+          winchTimer = setTimeout(() => {
+            winchTimer = null;
+            activeExecution = execute().catch((err) => {
+              console.error("\n\u274C An error occurred:", err instanceof Error ? err.message : err);
+            });
+          }, 150);
+        });
+        activeExecution = execute();
+        await activeExecution;
+      } else {
+        await execute();
+      }
+    } catch (error) {
+      console.error("\n\u274C An error occurred:", error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+  program.command("file").description("extract resources from local file(s) via direct filesystem access").addArgument(fileArg).addOption(
+    new Option("--no-failsafe", `bypass the ${MAX_FILES_FAILSAFE}-file limit safety check`)
+  ).action(async (paths, options) => {
+    try {
+      if (options.failsafe && paths.length > MAX_FILES_FAILSAFE) {
+        console.error(
+          `
+\u274C ${paths.length} files specified exceeds the safety limit of ${MAX_FILES_FAILSAFE}.`
+        );
+        console.error(`   Pass --no-failsafe to bypass this check and process all files.`);
+        process.exit(1);
+      }
+      if (!options.failsafe && paths.length > MAX_FILES_FAILSAFE) {
+        console.error(
+          `
+\u26A0\uFE0F  Failsafe bypassed: processing ${paths.length} files (limit is ${MAX_FILES_FAILSAFE}).`
+        );
+      }
+      console.error(`
+\u2705 Processing ${paths.length} file(s)...`);
+      const fileFetcher = new FileFetcher();
+      const responses = await fileFetcher.fetchAll(paths);
+      const pageMetadatas = await buildPageMetadata(
+        responses.map(({ path, content, error }) => ({ path, content, error }))
+      );
+      await printer.print(...pageMetadatas);
+    } catch (error) {
+      console.error("\n\u274C An error occurred:", error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+  await program.parseAsync(process.argv);
+})();
 /**
  * @license MIT
  * We are interested in visualising a page as a collection of tags.

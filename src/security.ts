@@ -2,7 +2,7 @@
  * Security utilities for URL validation and sanitization
  */
 
-const ALLOWED_PROTOCOLS = ['http:', 'https:', 'file:'];
+const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 const MAX_URL_LENGTH = 2048;
 const SUSPICIOUS_PATTERNS = [
   /javascript:/i,
@@ -56,14 +56,7 @@ export function validateUrl(url: string): ValidationResult {
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(trimmedUrl);
-  } catch (error) {
-    // If URL parsing fails, it might be a file path
-    if (trimmedUrl.startsWith('file://')) {
-      return {
-        isValid: true,
-        sanitizedUrl: trimmedUrl,
-      };
-    }
+  } catch {
     return {
       isValid: false,
       error: 'Invalid URL format',
@@ -88,7 +81,7 @@ export function validateUrl(url: string): ValidationResult {
     hostname.startsWith('10.') ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
 
-  if (isLocalhost && parsedUrl.protocol !== 'file:') {
+  if (isLocalhost) {
     // Allow but warn about localhost URLs
     console.warn(`Warning: Accessing local network resource: ${trimmedUrl}`);
   }

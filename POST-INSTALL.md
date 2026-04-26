@@ -83,16 +83,16 @@ Built successfully with esbuild
 
 ## 🛡️ Security Features Summary
 
-| Feature             | Status | Description                              |
-| ------------------- | ------ | ---------------------------------------- |
-| URL Validation      | ✅     | Validates and sanitizes all input URLs   |
-| Rate Limiting       | ✅     | Prevents abuse with configurable limits  |
-| XSS Protection      | ✅     | HTML sanitization and output escaping    |
+| Feature             | Status | Description                               |
+| ------------------- | ------ | ----------------------------------------- |
+| URL Validation      | ✅     | Validates and sanitizes all input URLs    |
+| Rate Limiting       | ✅     | Prevents abuse with configurable limits   |
+| XSS Protection      | ✅     | HTML sanitization and output escaping     |
 | Safe Parsing        | ✅     | LinkeDOM parsing with no script execution |
-| Timeout Protection  | ✅     | Prevents hanging on slow resources       |
-| Error Handling      | ✅     | Graceful error handling with retry logic |
-| Dependency Security | ✅     | All dependencies audited and updated     |
-| Static Analysis     | ✅     | ESLint with security plugin enabled      |
+| Timeout Protection  | ✅     | Prevents hanging on slow resources        |
+| Error Handling      | ✅     | Graceful error handling with retry logic  |
+| Dependency Security | ✅     | All dependencies audited and updated      |
+| Static Analysis     | ✅     | ESLint with security plugin enabled       |
 
 ## 📋 Configuration Files Created/Updated
 

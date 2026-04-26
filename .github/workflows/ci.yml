@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
   schedule:
     # Run security checks daily at 00:00 UTC
-    - cron: "0 0 * * *"
+    - cron: '0 0 * * *'
 
 # Cancel stale runs on the same ref to reduce queue noise and spend.
 concurrency:
@@ -21,7 +21,7 @@ permissions:
 
 # Opt actions runtime into Node 24 now to avoid Node 20 deprecation cliff.
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   security-audit:
@@ -36,8 +36,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -65,8 +65,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -75,7 +75,31 @@ jobs:
         run: npm run lint
 
       - name: Check code formatting
+        id: prettier_check
         run: npm run format:check
+        continue-on-error: true
+
+      - name: Explain Prettier failures
+        if: steps.prettier_check.outcome == 'failure'
+        run: |
+          echo "Prettier found formatting issues in the files below:"
+          npx prettier --list-different "**/*.{ts,js,mjs,cjs,json,yml,yaml,md}"
+
+          while IFS= read -r file; do
+            if [[ -z "$file" ]]; then
+              continue
+            fi
+
+            echo "::group::Prettier diff: $file"
+            npx prettier "$file" | diff -u "$file" - || true
+            echo "::endgroup::"
+          done < <(npx prettier --list-different "**/*.{ts,js,mjs,cjs,json,yml,yaml,md}")
+
+      - name: Fail if formatting issues were found
+        if: steps.prettier_check.outcome == 'failure'
+        run: |
+          echo "Formatting check failed. Run: npm run format"
+          exit 1
 
       - name: TypeScript type check
         run: npm run type-check
@@ -105,7 +129,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -141,8 +165,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci

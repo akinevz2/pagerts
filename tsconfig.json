@@ -5,6 +5,7 @@
     "lib": ["ES2022", "DOM"],
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
+    "rootDir": "src",
     "outDir": "bin",
     "sourceMap": true,
     "strict": true,
@@ -19,6 +20,7 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "types": ["node", "jest"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true

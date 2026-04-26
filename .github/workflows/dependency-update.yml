@@ -3,7 +3,7 @@ name: Dependency Update
 on:
   schedule:
     # Check for updates every Monday at 09:00 UTC
-    - cron: "0 9 * * 1"
+    - cron: '0 9 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -22,8 +22,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Check for outdated packages
         run: npm outdated || true
@@ -42,8 +42,8 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: update dependencies"
-          title: "chore: automated dependency updates"
+          commit-message: 'chore: update dependencies'
+          title: 'chore: automated dependency updates'
           body: |
             Automated dependency updates.
 

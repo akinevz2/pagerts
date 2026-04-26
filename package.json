@@ -1,7 +1,7 @@
 {
   "name": "pagerts",
   "description": "A tool for viewing external relations in a webpage",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "type": "module",
   "main": "main.js",
   "bin": {
@@ -16,12 +16,12 @@
   "scripts": {
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "build": "esbuild src/main.ts --bundle --packages=external --outdir=bin --minify --sourcemap --platform=node --format=esm",
+    "build": "esbuild src/main.ts --bundle --packages=external --outdir=bin --sourcemap --platform=node --format=esm",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
+    "format": "prettier --write \"**/*.{ts,js,mjs,cjs,json,yml,yaml,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,cjs,json,yml,yaml,md}\"",
     "security:audit": "npm audit --audit-level=moderate",
     "security:check": "npm run security:audit && npm run lint",
     "start": "node ./bin/main.js",

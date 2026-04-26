@@ -1,6 +1,8 @@
-import { readFile } from 'fs/promises';
 import { parseHTML } from 'linkedom';
-import { legacyHookDecode } from '@exodus/bytes/encoding.js';
+
+type ParseHTMLResult = {
+  document: Document;
+};
 
 export interface DOMResult {
   window: { document: Document };
@@ -23,27 +25,27 @@ export class PageFetcher {
   }
 
   private buildDOMResult(html: string, url: string): DOMResult {
-    const { document } = parseHTML(html) as { document: Document };
+    const { document } = parseHTML(html) as ParseHTMLResult;
     return { window: { document }, url };
+  }
+
+  private decodeHtml(buffer: ArrayBuffer, charset: string): string {
+    try {
+      return new TextDecoder(charset).decode(new Uint8Array(buffer));
+    } catch {
+      return new TextDecoder('utf-8').decode(new Uint8Array(buffer));
+    }
   }
 
   private async fetchPage(url: string, retryCount = 0): Promise<PageResponse> {
     try {
-      let domPromise: Promise<DOMResult>;
-
-      if (url.startsWith('file://')) {
-        domPromise = readFile(url.substring(7), 'utf-8').then((html) =>
-          this.buildDOMResult(html, url)
-        );
-      } else {
-        domPromise = fetch(url).then(async (response) => {
-          const buffer = await response.arrayBuffer();
-          const contentType = response.headers.get('content-type') ?? '';
-          const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
-          const html = legacyHookDecode(new Uint8Array(buffer), charsetMatch?.[1] ?? 'utf-8');
-          return this.buildDOMResult(html, url);
-        });
-      }
+      const domPromise = fetch(url).then(async (response) => {
+        const buffer = await response.arrayBuffer();
+        const contentType = response.headers.get('content-type') ?? '';
+        const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
+        const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? 'utf-8');
+        return this.buildDOMResult(html, url);
+      });
 
       const content = await (this.timeout > 0
         ? Promise.race([

@@ -13,9 +13,10 @@ describe('Security Module', () => {
       expect(result.isValid).toBe(true);
     });
 
-    it('should validate a file:// URL', () => {
+    it('should reject file:// URLs', () => {
       const result = validateUrl('file:///path/to/file.html');
-      expect(result.isValid).toBe(true);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('not allowed');
     });
 
     it('should reject empty URLs', () => {

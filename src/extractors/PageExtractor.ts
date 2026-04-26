@@ -8,7 +8,10 @@ export class PageExtractor extends AbstractExtractor<DOMResult, Page> {
   }
 
   async extract(value: DOMResult): Promise<Page> {
-    const { window: { document }, url } = value;
+    const {
+      window: { document },
+      url,
+    } = value;
     return { title: document.title, url };
   }
 }
