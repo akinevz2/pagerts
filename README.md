@@ -33,7 +33,7 @@ npx pagerts <url>
 ### From Source
 
 ```bash
-git clone https://github.com/akinevz0/pagerts.git
+git clone https://github.com/akinevz2/pagerts.git
 cd pagerts
 npm install
 npm run build
@@ -117,7 +117,7 @@ PagerTS takes security seriously. See [SECURITY.md](./SECURITY.md) for:
 
 ```bash
 # Clone the repository
-git clone https://github.com/akinevz0/pagerts.git
+git clone https://github.com/akinevz2/pagerts.git
 cd pagerts
 
 # Install dependencies
@@ -186,8 +186,8 @@ pagerts/
 ├── .github/workflows/          # CI/CD pipelines
 ├── package.json
 ├── tsconfig.json
-├── jest.config.js
-├── eslint.config.js
+├── jest.config.cjs
+├── eslint.config.mjs
 └── SECURITY.md
 ```
 
@@ -220,13 +220,13 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Support
 
-- 🐛 [Report bugs](https://github.com/akinevz0/pagerts/issues)
-- 💡 [Request features](https://github.com/akinevz0/pagerts/issues)
+- 🐛 [Report bugs](https://github.com/akinevz2/pagerts/issues)
+- 💡 [Request features](https://github.com/akinevz2/pagerts/issues)
 - 🔒 [Report security issues](./SECURITY.md)
 
 ## Changelog
 
-### v0.3.0 -> v1.4.1 summary
+### v0.3.0 -> v1.4.3 summary
 
 Key changes in this range:
 
@@ -234,7 +234,7 @@ Key changes in this range:
 - CI/security gate tightening and scan-noise cleanup (`da73bdb`, `46875e8`).
 - Packaging/runtime interoperability fixes for CJS/ESM builds and publishes (`4054ab9`, `74d3f98`, `64b2a2f`, `e67acd6`).
 - Regression fix for ignored script resources (`bc13b55`).
-- Dependency tree refresh/stabilization (`1f8f86d`) and release bump to `v1.4.1` (`8846bec`).
+- Dependency tree refresh/stabilization (`1f8f86d`) and release bumps through `v1.4.3`.
 - General code hardening and cleanup across extractors/fetching/printers, plus lockfile and build artifact maintenance in the same span.
 
 ### v0.2.0

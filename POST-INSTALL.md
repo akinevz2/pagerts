@@ -101,7 +101,7 @@ Built successfully with esbuild
 - ✅ `src/security.ts` - Security utilities module
 - ✅ `src/__tests__/security.test.ts` - Security tests
 - ✅ `src/__tests__/PageFetcher.test.ts` - PageFetcher tests
-- ✅ `eslint.config.js` - ESLint configuration with security plugin
+- ✅ `eslint.config.mjs` - ESLint configuration with security plugin
 - ✅ `.prettierrc.json` - Prettier configuration
 - ✅ `.prettierignore` - Prettier ignore patterns
 - ✅ `SECURITY.md` - Security policy and guidelines
@@ -138,7 +138,7 @@ npm run build          # Build the project
 
 - ✅ Security audit on every push/PR
 - ✅ Linting and formatting checks
-- ✅ Test suite across Node.js 18, 20, and 22
+- ✅ Test suite across Node.js 20 and 22
 - ✅ CodeQL security analysis
 - ✅ Build verification
 - ✅ Weekly dependency updates

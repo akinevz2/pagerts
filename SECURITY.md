@@ -6,8 +6,8 @@ We release patches for security vulnerabilities. Currently supported versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.3.x   | :white_check_mark: |
-| < 0.3.0 | :x:                |
+| 1.x     | :white_check_mark: |
+| < 1.0.0 | :x:                |
 
 ## Security Features
 
@@ -151,7 +151,7 @@ PagerTS uses:
 
 ## Contact
 
-For security concerns, contact: [GitHub Issues](https://github.com/akinevz0/pagerts/issues)
+For security concerns, contact: [GitHub Issues](https://github.com/akinevz2/pagerts/issues)
 
 ## Acknowledgments
 
