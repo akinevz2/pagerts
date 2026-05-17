@@ -3,6 +3,8 @@
 // src/main.ts
 import { Command, createArgument, Option } from "commander";
 import { createRequire } from "node:module";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // src/extractors/AbstractExtractor.ts
 var AbstractExtractor = class {
@@ -95,23 +97,25 @@ var PageFetcher = class {
     }
   }
   async fetchPage(url, retryCount = 0) {
+    const controller = new AbortController();
+    let timeoutId = null;
     try {
-      const domPromise = fetch(url).then(async (response) => {
+      if (this.timeout > 0) {
+        timeoutId = setTimeout(() => {
+          controller.abort(new Error("Request timeout"));
+        }, this.timeout);
+      }
+      const content = await fetch(url, { signal: controller.signal }).then(async (response) => {
         const buffer = await response.arrayBuffer();
         const contentType = response.headers.get("content-type") ?? "";
         const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
         const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? "utf-8");
         return this.buildDOMResult(html, url);
       });
-      const content = await (this.timeout > 0 ? Promise.race([
-        domPromise,
-        new Promise(
-          (_, reject) => setTimeout(() => reject(new Error("Request timeout")), this.timeout)
-        )
-      ]) : domPromise);
       return { url, content };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      const abortTimeout = error instanceof Error && error.name === "AbortError";
+      const message = abortTimeout ? "Request timeout" : error instanceof Error ? error.message : "Unknown error";
       if (retryCount < this.maxRetries && this.isRetryableError(message)) {
         process.stderr.write(`Retrying ${url} (attempt ${retryCount + 1}/${this.maxRetries})...
 `);
@@ -119,6 +123,10 @@ var PageFetcher = class {
         return this.fetchPage(url, retryCount + 1);
       }
       return { url, error: `Failed to fetch: ${message}` };
+    } finally {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
     }
   }
   isRetryableError(message) {
@@ -126,7 +134,7 @@ var PageFetcher = class {
     return retryablePatterns.some((pattern) => pattern.test(message));
   }
   delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve2) => setTimeout(resolve2, ms));
   }
   async fetchAll(urls) {
     const responses = await Promise.all(urls.map((url) => this.fetchPage(url)));
@@ -268,7 +276,14 @@ async function buildPageMetadata(responses) {
   }
   return pageMetadatas;
 }
-(async () => {
+function isCliEntrypoint() {
+  const invokedPath = process.argv[1];
+  if (!invokedPath) {
+    return false;
+  }
+  return fileURLToPath(import.meta.url) === resolve(invokedPath);
+}
+async function runCli(argv = process.argv) {
   program.name(name).version(version, "-v, --version").description(description);
   program.command("fetch", { isDefault: true }).description("fetch and extract resources from remote URL(s)").addArgument(urlArg).addOption(
     new Option(
@@ -354,8 +369,17 @@ async function buildPageMetadata(responses) {
       process.exit(1);
     }
   });
-  await program.parseAsync(process.argv);
-})();
+  await program.parseAsync(argv);
+}
+if (isCliEntrypoint()) {
+  runCli().catch((error) => {
+    console.error("\n\u274C An error occurred:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}
+export {
+  runCli
+};
 /**
  * @license MIT
  * We are interested in visualising a page as a collection of tags.

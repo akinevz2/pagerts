@@ -38,8 +38,17 @@ export class PageFetcher {
   }
 
   private async fetchPage(url: string, retryCount = 0): Promise<PageResponse> {
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     try {
-      const domPromise = fetch(url).then(async (response) => {
+      if (this.timeout > 0) {
+        timeoutId = setTimeout(() => {
+          controller.abort(new Error('Request timeout'));
+        }, this.timeout);
+      }
+
+      const content = await fetch(url, { signal: controller.signal }).then(async (response) => {
         const buffer = await response.arrayBuffer();
         const contentType = response.headers.get('content-type') ?? '';
         const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
@@ -47,18 +56,14 @@ export class PageFetcher {
         return this.buildDOMResult(html, url);
       });
 
-      const content = await (this.timeout > 0
-        ? Promise.race([
-            domPromise,
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Request timeout')), this.timeout)
-            ),
-          ])
-        : domPromise);
-
       return { url, content };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const abortTimeout = error instanceof Error && error.name === 'AbortError';
+      const message = abortTimeout
+        ? 'Request timeout'
+        : error instanceof Error
+          ? error.message
+          : 'Unknown error';
 
       // Retry logic for transient errors
       if (retryCount < this.maxRetries && this.isRetryableError(message)) {
@@ -68,6 +73,10 @@ export class PageFetcher {
       }
 
       return { url, error: `Failed to fetch: ${message}` };
+    } finally {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
     }
   }
 

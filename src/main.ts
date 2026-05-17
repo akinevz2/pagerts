@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { Command, createArgument, Option } from 'commander';
 import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { PageExtractor, ResourceExtractor } from './extractors/index.js';
 import { FileFetcher, MAX_FILES_FAILSAFE, PageFetcher, type PageMetadata } from './page/index.js';
@@ -50,7 +52,16 @@ async function buildPageMetadata(
   return pageMetadatas;
 }
 
-(async (): Promise<void> => {
+function isCliEntrypoint(): boolean {
+  const invokedPath = process.argv[1];
+  if (!invokedPath) {
+    return false;
+  }
+
+  return fileURLToPath(import.meta.url) === resolve(invokedPath);
+}
+
+export async function runCli(argv: string[] = process.argv): Promise<void> {
   program.name(name).version(version, '-v, --version').description(description);
 
   // ── fetch subcommand (default remote URL mode) ──────────────────────────
@@ -160,5 +171,12 @@ async function buildPageMetadata(
       }
     });
 
-  await program.parseAsync(process.argv);
-})();
+  await program.parseAsync(argv);
+}
+
+if (isCliEntrypoint()) {
+  runCli().catch((error: unknown) => {
+    console.error('\n❌ An error occurred:', error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

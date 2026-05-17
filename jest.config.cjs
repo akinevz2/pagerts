@@ -5,7 +5,6 @@
 
 /** @type {import('jest').Config} */
 const config = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
 
   // Support for ES modules
@@ -50,17 +49,19 @@ const config = {
   // Allow Jest to transform @exodus/bytes (pure ESM package) through Babel
   transformIgnorePatterns: ['/node_modules/(?!@exodus/bytes/)'],
 
-  // Transform files with ts-jest
+  // Transform TypeScript test sources for Jest using SWC.
   transform: {
     '^.+\\.ts$': [
-      'ts-jest',
+      '@swc/jest',
       {
-        useESM: true,
-        tsconfig: {
-          module: 'ES2022',
-          target: 'ES2022',
-          esModuleInterop: true,
-          moduleResolution: 'node',
+        module: {
+          type: 'es6',
+        },
+        jsc: {
+          parser: {
+            syntax: 'typescript',
+          },
+          target: 'es2022',
         },
       },
     ],
