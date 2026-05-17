@@ -140,9 +140,9 @@ jobs:
       - name: Upload coverage reports
         # Restrict uploads to trusted push events to avoid fork PR token/OIDC issues.
         if: matrix.node-version == '24.x' && github.event_name == 'push'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
-          file: ./coverage/coverage-final.json
+          files: ./coverage/coverage-final.json
           fail_ci_if_error: false
 
       - name: Diagnostics on failure
@@ -175,7 +175,7 @@ jobs:
         run: npm run build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: bin/
@@ -201,13 +201,13 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
       - name: Diagnostics on failure
         if: failure()

@@ -18,7 +18,7 @@ This document summarizes the comprehensive modernization and security improvemen
 - **TypeScript 5.7.2**: Latest TypeScript with strict mode enabled
 - **ESLint 9.18.0**: With security plugin for static analysis
 - **Prettier 3.4.2**: Code formatting for consistency
-- **Jest 29.7.0**: Modern testing framework with ts-jest
+- **Jest 30.4.2**: Modern testing framework with SWC-based transforms
 - **esbuild 0.25.1**: Fast, modern bundler
 
 ### 3. Security Features Implemented ✅
@@ -138,7 +138,7 @@ npm run build          # Build the project
 
 - ✅ Security audit on every push/PR
 - ✅ Linting and formatting checks
-- ✅ Test suite across Node.js 20 and 22
+- ✅ Test suite across Node.js 24
 - ✅ CodeQL security analysis
 - ✅ Build verification
 - ✅ Weekly dependency updates
