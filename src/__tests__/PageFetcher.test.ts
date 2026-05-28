@@ -2,12 +2,38 @@ import { PageFetcher } from '../page/PageFetcher';
 
 describe('PageFetcher', () => {
   let pageFetcher: PageFetcher;
+  const originalFetch = global.fetch;
 
   beforeEach(() => {
     pageFetcher = new PageFetcher();
   });
 
+  afterEach(() => {
+    global.fetch = originalFetch;
+    jest.restoreAllMocks();
+  });
+
   describe('fetchAll', () => {
+    it('should send an overridden user-agent when provided', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(
+        new Response('<html><head><title>Example</title></head><body></body></html>', {
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+        })
+      );
+      global.fetch = fetchMock as typeof fetch;
+
+      const customFetcher = new PageFetcher(10000, 0, 'Mozilla/5.0 Custom Test Browser');
+      const responses = await customFetcher.fetchAll(['https://example.com']);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://example.com',
+        expect.objectContaining({
+          headers: { 'user-agent': 'Mozilla/5.0 Custom Test Browser' },
+        })
+      );
+      expect(responses[0].content).toBeDefined();
+    });
+
     it('should fetch valid URLs', async () => {
       const urls = ['https://example.com'];
       const responses = await pageFetcher.fetchAll(urls);

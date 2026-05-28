@@ -53,6 +53,41 @@ async function buildPageMetadata(
   return pageMetadatas;
 }
 
+function normalizeLocalPath(value: string): string {
+  if (value.startsWith('file://')) {
+    return fileURLToPath(value);
+  }
+
+  return value;
+}
+
+async function runFileCommand(paths: string[], options: { failsafe: boolean }): Promise<void> {
+  if (options.failsafe && paths.length > MAX_FILES_FAILSAFE) {
+    console.error(
+      `\n❌ ${paths.length} files specified exceeds the safety limit of ${MAX_FILES_FAILSAFE}.`
+    );
+    console.error(`   Pass --no-failsafe to bypass this check and process all files.`);
+    process.exit(1);
+  }
+
+  if (!options.failsafe && paths.length > MAX_FILES_FAILSAFE) {
+    console.error(
+      `\n⚠️  Failsafe bypassed: processing ${paths.length} files (limit is ${MAX_FILES_FAILSAFE}).`
+    );
+  }
+
+  console.error(`\n✅ Processing ${paths.length} file(s)...`);
+
+  const fileFetcher = new FileFetcher();
+  const normalizedPaths = paths.map((pathValue) => normalizeLocalPath(pathValue));
+  const responses = await fileFetcher.fetchAll(normalizedPaths);
+  const pageMetadatas = await buildPageMetadata(
+    responses.map(({ path, content, error }) => ({ path, content, error }))
+  );
+
+  await printer.print(...pageMetadatas);
+}
+
 function isCliEntrypoint(): boolean {
   const invokedPath = process.argv[1];
   if (!invokedPath) {
@@ -69,9 +104,23 @@ function isCliEntrypoint(): boolean {
 export async function runCli(argv: string[] = process.argv): Promise<void> {
   program.name(name).version(version, '-v, --version').description(description);
 
-  // ── fetch subcommand (default remote URL mode) ──────────────────────────
   program
-    .command('fetch', { isDefault: true })
+    .addArgument(fileArg)
+    .addOption(
+      new Option('--no-failsafe', `bypass the ${MAX_FILES_FAILSAFE}-file limit safety check`)
+    )
+    .action(async (paths: string[], options: { failsafe: boolean }) => {
+      try {
+        await runFileCommand(paths, options);
+      } catch (error) {
+        console.error('\n❌ An error occurred:', error instanceof Error ? error.message : error);
+        process.exit(1);
+      }
+    });
+
+  // ── fetch subcommand (remote URL mode only) ─────────────────────────────
+  program
+    .command('fetch')
     .description('fetch and extract resources from remote URL(s)')
     .addArgument(urlArg)
     .addOption(
@@ -80,7 +129,8 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
         'keep running: SIGWINCH re-fetches after resize, Ctrl-D releases in-flight requests, Ctrl-C exits'
       )
     )
-    .action(async (urls: string[], options: { watch: boolean }) => {
+    .addOption(new Option('-A, --user-agent <value>', 'override the HTTP User-Agent header'))
+    .action(async (urls: string[], options: { watch: boolean; userAgent?: string }) => {
       try {
         const { validUrls, errors } = validateUrls(urls);
 
@@ -98,7 +148,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
 
         console.error(`\n✅ Processing ${validUrls.length} valid URL(s)...`);
 
-        const pageFetcher = new PageFetcher(options.watch ? 0 : 10000, 2);
+        const pageFetcher = new PageFetcher(options.watch ? 0 : 10000, 2, options.userAgent);
 
         const execute = async (): Promise<void> => {
           const responses = await pageFetcher.fetchAll(validUrls);
@@ -147,29 +197,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     )
     .action(async (paths: string[], options: { failsafe: boolean }) => {
       try {
-        if (options.failsafe && paths.length > MAX_FILES_FAILSAFE) {
-          console.error(
-            `\n❌ ${paths.length} files specified exceeds the safety limit of ${MAX_FILES_FAILSAFE}.`
-          );
-          console.error(`   Pass --no-failsafe to bypass this check and process all files.`);
-          process.exit(1);
-        }
-
-        if (!options.failsafe && paths.length > MAX_FILES_FAILSAFE) {
-          console.error(
-            `\n⚠️  Failsafe bypassed: processing ${paths.length} files (limit is ${MAX_FILES_FAILSAFE}).`
-          );
-        }
-
-        console.error(`\n✅ Processing ${paths.length} file(s)...`);
-
-        const fileFetcher = new FileFetcher();
-        const responses = await fileFetcher.fetchAll(paths);
-        const pageMetadatas = await buildPageMetadata(
-          responses.map(({ path, content, error }) => ({ path, content, error }))
-        );
-
-        await printer.print(...pageMetadatas);
+        await runFileCommand(paths, options);
       } catch (error) {
         console.error('\n❌ An error occurred:', error instanceof Error ? error.message : error);
         process.exit(1);

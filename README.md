@@ -14,6 +14,8 @@ PagerTS is a secure, modern command-line utility that transforms URLs into struc
 - ⚡ **Fast**: Efficient parsing with LinkeDOM and concurrent request handling
 - 🧪 **Well-Tested**: Comprehensive test coverage with Jest
 - 📦 **Easy to Use**: Simple CLI interface with sensible defaults
+- 🗂️ **Local File Support**: bare `pagerts` parses local file paths and `file:///...` inputs
+- 🧭 **Request Header Override**: Optional `--user-agent` flag for sites that behave differently by client
 
 ## Installation
 
@@ -21,13 +23,13 @@ PagerTS is a secure, modern command-line utility that transforms URLs into struc
 
 ```bash
 npm install -g pagerts
-pagerts <url>
+pagerts ./page.html
 ```
 
 ### Using npx (No Installation Required)
 
 ```bash
-npx pagerts <url>
+npx pagerts ./page.html
 ```
 
 ### From Source
@@ -44,22 +46,34 @@ npm link
 
 ### Basic Usage
 
-Extract resources from a remote URL:
+Extract resources from a local HTML file path:
 
 ```bash
-pagerts https://example.com
+pagerts ./page.html
 ```
 
-Extract from multiple URLs:
-
-```bash
-pagerts https://example.com https://example.org
-```
-
-Extract from a local HTML file:
+Extract resources from a local file URL:
 
 ```bash
 pagerts file:///path/to/file.html
+```
+
+Fetch resources from a remote URL:
+
+```bash
+pagerts fetch https://website.com
+```
+
+Override the HTTP user-agent for remote fetches:
+
+```bash
+pagerts fetch --user-agent "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0" https://example.com
+```
+
+Fetch from multiple remote URLs:
+
+```bash
+pagerts fetch https://example.com https://example.org
 ```
 
 ### Output Format
@@ -98,7 +112,8 @@ PagerTS takes security seriously. See [SECURITY.md](./SECURITY.md) for:
 
 ### Built-in Security Features
 
-- ✅ URL validation (only allows `http://`, `https://`, `file://`)
+- ✅ URL validation for remote fetches (only allows `http://` and `https://`)
+- ✅ Local filesystem parsing through plain paths and `file://` inputs on the root command
 - ✅ Input sanitization to prevent XSS attacks
 - ✅ Rate limiting (50 requests/minute by default)
 - ✅ Request timeouts to prevent hanging
@@ -225,6 +240,13 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 - 🔒 [Report security issues](./SECURITY.md)
 
 ## Changelog
+
+### v1.5.3
+
+- Added `--user-agent` support to the `fetch` command so callers can override the HTTP User-Agent header for remote requests.
+- Made the root `pagerts` command parse local file paths and `file:///` inputs directly, while keeping `fetch` remote-only.
+- Improved CLI/runtime compatibility for locally resolved entrypoints and packaged builds.
+- Updated focused tests to cover the new file-protocol validation and user-agent override behavior.
 
 ### v0.3.0 -> v1.4.3 summary
 

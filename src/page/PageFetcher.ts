@@ -18,10 +18,12 @@ interface PageResponse {
 export class PageFetcher {
   private readonly timeout: number;
   private readonly maxRetries: number;
+  private readonly userAgent?: string;
 
-  constructor(timeout = 10000, maxRetries = 2) {
+  constructor(timeout = 10000, maxRetries = 2, userAgent?: string) {
     this.timeout = timeout;
     this.maxRetries = maxRetries;
+    this.userAgent = userAgent;
   }
 
   private buildDOMResult(html: string, url: string): DOMResult {
@@ -48,7 +50,8 @@ export class PageFetcher {
         }, this.timeout);
       }
 
-      const content = await fetch(url, { signal: controller.signal }).then(async (response) => {
+      const headers = this.userAgent ? { 'user-agent': this.userAgent } : undefined;
+      const content = await fetch(url, { headers, signal: controller.signal }).then(async (response) => {
         const buffer = await response.arrayBuffer();
         const contentType = response.headers.get('content-type') ?? '';
         const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
