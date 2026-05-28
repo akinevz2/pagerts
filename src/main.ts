@@ -3,6 +3,7 @@ import { Command, createArgument, Option } from 'commander';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 
 import { PageExtractor, ResourceExtractor } from './extractors/index.js';
 import { FileFetcher, MAX_FILES_FAILSAFE, PageFetcher, type PageMetadata } from './page/index.js';
@@ -58,7 +59,11 @@ function isCliEntrypoint(): boolean {
     return false;
   }
 
-  return fileURLToPath(import.meta.url) === resolve(invokedPath);
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(invokedPath));
+  } catch {
+    return false;
+  }
 }
 
 export async function runCli(argv: string[] = process.argv): Promise<void> {
