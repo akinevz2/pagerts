@@ -1,8 +1,5 @@
 node_modules/
 dist/
 .vscode/launch.json
-bin/
-bin/main.js
-bin/main.js.map
 coverage/
 pagerts-*.tgz

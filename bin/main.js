@@ -5,6 +5,7 @@ import { Command, createArgument, Option } from "commander";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
 
 // src/extractors/AbstractExtractor.ts
 var AbstractExtractor = class {
@@ -281,7 +282,11 @@ function isCliEntrypoint() {
   if (!invokedPath) {
     return false;
   }
-  return fileURLToPath(import.meta.url) === resolve(invokedPath);
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(invokedPath));
+  } catch {
+    return false;
+  }
 }
 async function runCli(argv = process.argv) {
   program.name(name).version(version, "-v, --version").description(description);
