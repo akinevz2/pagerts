@@ -51,13 +51,15 @@ export class PageFetcher {
       }
 
       const headers = this.userAgent ? { 'user-agent': this.userAgent } : undefined;
-      const content = await fetch(url, { headers, signal: controller.signal }).then(async (response) => {
-        const buffer = await response.arrayBuffer();
-        const contentType = response.headers.get('content-type') ?? '';
-        const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
-        const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? 'utf-8');
-        return this.buildDOMResult(html, url);
-      });
+      const content = await fetch(url, { headers, signal: controller.signal }).then(
+        async (response) => {
+          const buffer = await response.arrayBuffer();
+          const contentType = response.headers.get('content-type') ?? '';
+          const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
+          const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? 'utf-8');
+          return this.buildDOMResult(html, url);
+        }
+      );
 
       return { url, content };
     } catch (error) {
