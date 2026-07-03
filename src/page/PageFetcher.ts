@@ -54,34 +54,36 @@ export class PageFetcher {
       }
 
       const headers = this.userAgent ? { 'user-agent': this.userAgent } : undefined;
-      const content = await fetch(url, { headers, signal: controller.signal }).then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-        }
+      const content = await fetch(url, { headers, signal: controller.signal }).then(
+        async (response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+          }
 
-        const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
-        const isAllowedContentType = ALLOWED_CONTENT_TYPES.some((allowedType) =>
-          contentType.includes(allowedType)
-        );
-        if (!isAllowedContentType) {
-          throw new Error(`Unsupported content type: ${contentType || 'unknown'}`);
-        }
+          const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
+          const isAllowedContentType = ALLOWED_CONTENT_TYPES.some((allowedType) =>
+            contentType.includes(allowedType)
+          );
+          if (!isAllowedContentType) {
+            throw new Error(`Unsupported content type: ${contentType || 'unknown'}`);
+          }
 
-        const contentLengthHeader = response.headers.get('content-length');
-        const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN;
-        if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
-          throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
-        }
+          const contentLengthHeader = response.headers.get('content-length');
+          const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN;
+          if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+          }
 
-        const buffer = await response.arrayBuffer();
-        if (buffer.byteLength > MAX_HTML_BYTES) {
-          throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
-        }
+          const buffer = await response.arrayBuffer();
+          if (buffer.byteLength > MAX_HTML_BYTES) {
+            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+          }
 
-        const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
-        const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? 'utf-8');
-        return this.buildDOMResult(html, url);
-      });
+          const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
+          const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? 'utf-8');
+          return this.buildDOMResult(html, url);
+        }
+      );
 
       return { url, content };
     } catch (error) {

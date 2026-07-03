@@ -86,7 +86,9 @@ describe('PageFetcher', () => {
     it('should reject non-HTML content types', async () => {
       const fetchMock = jest
         .fn()
-        .mockResolvedValue(new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } }));
+        .mockResolvedValue(
+          new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } })
+        );
       global.fetch = fetchMock as typeof fetch;
 
       const responses = await pageFetcher.fetchAll(['https://example.com/api']);
@@ -97,16 +99,14 @@ describe('PageFetcher', () => {
 
     it('should reject responses that exceed max allowed size', async () => {
       const oversizedBody = 'x'.repeat(2 * 1024 * 1024 + 1);
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(
-          new Response(oversizedBody, {
-            headers: {
-              'content-type': 'text/html; charset=utf-8',
-              'content-length': String(oversizedBody.length),
-            },
-          })
-        );
+      const fetchMock = jest.fn().mockResolvedValue(
+        new Response(oversizedBody, {
+          headers: {
+            'content-type': 'text/html; charset=utf-8',
+            'content-length': String(oversizedBody.length),
+          },
+        })
+      );
       global.fetch = fetchMock as typeof fetch;
 
       const responses = await pageFetcher.fetchAll(['https://example.com/large']);

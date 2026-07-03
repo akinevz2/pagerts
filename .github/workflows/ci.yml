@@ -84,9 +84,12 @@ jobs:
         if: steps.prettier_check.outcome == 'failure'
         run: |
           echo "Prettier found formatting issues in the files below:"
-          npx prettier --list-different "**/*.{ts,js,mjs,cjs,json,yml,yaml,md}"
 
-          while IFS= read -r file; do
+          mapfile -t changed_files < <(npx prettier --list-different "**/*.{ts,js,mjs,cjs,json,yml,yaml,md}" || true)
+
+          printf '%s\n' "${changed_files[@]}"
+
+          for file in "${changed_files[@]}"; do
             if [[ -z "$file" ]]; then
               continue
             fi
@@ -94,7 +97,7 @@ jobs:
             echo "::group::Prettier diff: $file"
             npx prettier "$file" | diff -u "$file" - || true
             echo "::endgroup::"
-          done < <(npx prettier --list-different "**/*.{ts,js,mjs,cjs,json,yml,yaml,md}")
+          done
 
       - name: Fail if formatting issues were found
         if: steps.prettier_check.outcome == 'failure'

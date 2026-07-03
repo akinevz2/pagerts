@@ -141,63 +141,66 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
         urls: string[],
         options: { watch: boolean; userAgent?: string; allowPrivateHosts: boolean }
       ) => {
-      try {
-        const { validUrls, errors } = validateUrls(urls, {
-          allowPrivateHosts: options.allowPrivateHosts,
-        });
-
-        if (errors.length > 0) {
-          console.error('\n❌ URL Validation Errors:');
-          errors.forEach(({ url: invalidUrl, error }) => {
-            console.error(`  - ${invalidUrl}: ${error}`);
+        try {
+          const { validUrls, errors } = validateUrls(urls, {
+            allowPrivateHosts: options.allowPrivateHosts,
           });
-        }
 
-        if (validUrls.length === 0) {
-          console.error('\n❌ No valid URLs to process. Exiting.');
+          if (errors.length > 0) {
+            console.error('\n❌ URL Validation Errors:');
+            errors.forEach(({ url: invalidUrl, error }) => {
+              console.error(`  - ${invalidUrl}: ${error}`);
+            });
+          }
+
+          if (validUrls.length === 0) {
+            console.error('\n❌ No valid URLs to process. Exiting.');
+            process.exit(1);
+          }
+
+          console.error(`\n✅ Processing ${validUrls.length} valid URL(s)...`);
+
+          const pageFetcher = new PageFetcher(options.watch ? 0 : 10000, 2, options.userAgent);
+
+          const execute = async (): Promise<void> => {
+            const responses = await pageFetcher.fetchAll(validUrls);
+            const pageMetadatas = await buildPageMetadata(responses);
+            await printer.print(...pageMetadatas);
+          };
+
+          if (options.watch) {
+            process.stdin.resume();
+            process.on('SIGINT', () => process.exit(0));
+
+            let activeExecution: Promise<void> | null = null;
+            process.stdin.on('end', () => {
+              activeExecution = null;
+            });
+
+            let winchTimer: ReturnType<typeof setTimeout> | null = null;
+            process.on('SIGWINCH', () => {
+              if (winchTimer !== null) clearTimeout(winchTimer);
+              winchTimer = setTimeout(() => {
+                winchTimer = null;
+                activeExecution = execute().catch((err: unknown) => {
+                  console.error(
+                    '\n❌ An error occurred:',
+                    err instanceof Error ? err.message : err
+                  );
+                });
+              }, 150);
+            });
+
+            activeExecution = execute();
+            await activeExecution;
+          } else {
+            await execute();
+          }
+        } catch (error) {
+          console.error('\n❌ An error occurred:', error instanceof Error ? error.message : error);
           process.exit(1);
         }
-
-        console.error(`\n✅ Processing ${validUrls.length} valid URL(s)...`);
-
-        const pageFetcher = new PageFetcher(options.watch ? 0 : 10000, 2, options.userAgent);
-
-        const execute = async (): Promise<void> => {
-          const responses = await pageFetcher.fetchAll(validUrls);
-          const pageMetadatas = await buildPageMetadata(responses);
-          await printer.print(...pageMetadatas);
-        };
-
-        if (options.watch) {
-          process.stdin.resume();
-          process.on('SIGINT', () => process.exit(0));
-
-          let activeExecution: Promise<void> | null = null;
-          process.stdin.on('end', () => {
-            activeExecution = null;
-          });
-
-          let winchTimer: ReturnType<typeof setTimeout> | null = null;
-          process.on('SIGWINCH', () => {
-            if (winchTimer !== null) clearTimeout(winchTimer);
-            winchTimer = setTimeout(() => {
-              winchTimer = null;
-              activeExecution = execute().catch((err: unknown) => {
-                console.error('\n❌ An error occurred:', err instanceof Error ? err.message : err);
-              });
-            }, 150);
-          });
-
-          activeExecution = execute();
-          await activeExecution;
-        } else {
-          await execute();
-        }
-      } catch (error) {
-        console.error('\n❌ An error occurred:', error instanceof Error ? error.message : error);
-        process.exit(1);
       }
-    }
     );
 
   // ── file subcommand (local filesystem access) ────────────────────────────
