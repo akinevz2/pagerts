@@ -16,7 +16,9 @@ PagerTS implements several security measures to protect users:
 ### Input Validation
 
 - **URL Validation**: All URLs are validated before processing
-- **Protocol Restrictions**: Only `http://`, `https://`, and `file://` protocols are allowed
+- **Protocol Restrictions**: Remote fetch accepts only `http://` and `https://` protocols
+- **SSRF Mitigation**: Remote fetch blocks private/loopback targets by default unless explicitly opted in
+- **Credential Blocking**: URLs with embedded credentials are rejected
 - **Length Limits**: URLs are limited to 2048 characters to prevent DoS attacks
 - **Pattern Detection**: Suspicious patterns (javascript:, data:, etc.) are blocked
 
@@ -30,6 +32,8 @@ PagerTS implements several security measures to protect users:
 - LinkeDOM is used for DOM parsing in a non-executing context
 - JavaScript execution from fetched pages is disabled
 - Timeouts prevent hanging on slow resources
+- Response status/content-type checks are enforced before parsing
+- Remote HTML payloads are capped to avoid oversized response abuse
 - Retry logic with exponential backoff for transient failures
 
 ### Data Sanitization

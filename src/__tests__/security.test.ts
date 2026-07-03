@@ -61,6 +61,24 @@ describe('Security Module', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedUrl).toBe('https://example.com/');
     });
+
+    it('should reject private network hosts by default', () => {
+      const result = validateUrl('http://127.0.0.1:8080');
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('Private or loopback');
+    });
+
+    it('should allow private network hosts when explicitly enabled', () => {
+      const result = validateUrl('http://127.0.0.1:8080', { allowPrivateHosts: true });
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedUrl).toBe('http://127.0.0.1:8080/');
+    });
+
+    it('should reject URLs with embedded credentials', () => {
+      const result = validateUrl('https://user:pass@example.com/path');
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('embedded credentials');
+    });
   });
 
   describe('validateUrls', () => {
@@ -78,6 +96,16 @@ describe('Security Module', () => {
       const result = validateUrls([]);
       expect(result.validUrls.length).toBe(0);
       expect(result.errors.length).toBe(0);
+    });
+
+    it('should respect private-host override options', () => {
+      const blocked = validateUrls(['http://localhost:3000']);
+      expect(blocked.validUrls).toHaveLength(0);
+      expect(blocked.errors).toHaveLength(1);
+
+      const allowed = validateUrls(['http://localhost:3000'], { allowPrivateHosts: true });
+      expect(allowed.validUrls).toContain('http://localhost:3000/');
+      expect(allowed.errors).toHaveLength(0);
     });
   });
 

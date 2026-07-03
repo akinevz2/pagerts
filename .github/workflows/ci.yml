@@ -18,6 +18,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 # Opt actions runtime into Node 24 now to avoid Node 20 deprecation cliff.
 env:
@@ -31,16 +32,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       # Blocking security gate: fail CI when moderate+ vulnerabilities are detected.
       - name: Check for dependency vulnerabilities
@@ -60,16 +61,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run ESLint with security plugin
         run: npm run lint
@@ -118,21 +119,21 @@ jobs:
 
     strategy:
       matrix:
-        # Keep matrix aligned with package engines (>=24).
-        node-version: [24.x]
+        # Keep matrix aligned with package engines (>=20).
+        node-version: [20.x, 22.x, 24.x]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run tests with coverage
         run: npm test
@@ -140,7 +141,7 @@ jobs:
       - name: Upload coverage reports
         # Restrict uploads to trusted push events to avoid fork PR token/OIDC issues.
         if: matrix.node-version == '24.x' && github.event_name == 'push'
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage/coverage-final.json
           fail_ci_if_error: false
@@ -160,10 +161,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
@@ -175,7 +176,7 @@ jobs:
         run: npm run build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: bin/
@@ -198,7 +199,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

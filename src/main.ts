@@ -130,9 +130,21 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       )
     )
     .addOption(new Option('-A, --user-agent <value>', 'override the HTTP User-Agent header'))
-    .action(async (urls: string[], options: { watch: boolean; userAgent?: string }) => {
+    .addOption(
+      new Option(
+        '--allow-private-hosts',
+        'allow localhost/private-network targets (disabled by default for SSRF safety)'
+      )
+    )
+    .action(
+      async (
+        urls: string[],
+        options: { watch: boolean; userAgent?: string; allowPrivateHosts: boolean }
+      ) => {
       try {
-        const { validUrls, errors } = validateUrls(urls);
+        const { validUrls, errors } = validateUrls(urls, {
+          allowPrivateHosts: options.allowPrivateHosts,
+        });
 
         if (errors.length > 0) {
           console.error('\n❌ URL Validation Errors:');
@@ -185,7 +197,8 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
         console.error('\n❌ An error occurred:', error instanceof Error ? error.message : error);
         process.exit(1);
       }
-    });
+    }
+    );
 
   // ── file subcommand (local filesystem access) ────────────────────────────
   program

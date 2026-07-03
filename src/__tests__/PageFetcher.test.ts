@@ -70,5 +70,49 @@ describe('PageFetcher', () => {
         expect(responses[0].error).toContain('timeout');
       }
     }, 10000);
+
+    it('should surface HTTP status failures', async () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(new Response('Not Found', { status: 404, statusText: 'Not Found' }));
+      global.fetch = fetchMock as typeof fetch;
+
+      const responses = await pageFetcher.fetchAll(['https://example.com/missing']);
+
+      expect(responses).toHaveLength(1);
+      expect(responses[0].error).toContain('HTTP 404');
+    });
+
+    it('should reject non-HTML content types', async () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } }));
+      global.fetch = fetchMock as typeof fetch;
+
+      const responses = await pageFetcher.fetchAll(['https://example.com/api']);
+
+      expect(responses).toHaveLength(1);
+      expect(responses[0].error).toContain('Unsupported content type');
+    });
+
+    it('should reject responses that exceed max allowed size', async () => {
+      const oversizedBody = 'x'.repeat(2 * 1024 * 1024 + 1);
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(
+          new Response(oversizedBody, {
+            headers: {
+              'content-type': 'text/html; charset=utf-8',
+              'content-length': String(oversizedBody.length),
+            },
+          })
+        );
+      global.fetch = fetchMock as typeof fetch;
+
+      const responses = await pageFetcher.fetchAll(['https://example.com/large']);
+
+      expect(responses).toHaveLength(1);
+      expect(responses[0].error).toContain('max allowed size');
+    });
   });
 });

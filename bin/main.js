@@ -12,6 +12,7 @@ var AbstractExtractor = class {
   constructor(name2) {
     this.name = name2;
   }
+  name;
 };
 
 // src/extractors/PageExtractor.ts
@@ -64,6 +65,7 @@ var ResourceExtractor = class extends AbstractExtractor {
     super("page-extractor");
     this.tags = tags;
   }
+  tags;
   async extract(value) {
     const { document } = value.window;
     return this.tags.flatMap(
@@ -79,6 +81,8 @@ var ResourceExtractor = class extends AbstractExtractor {
 
 // src/page/PageFetcher.ts
 import { parseHTML } from "linkedom";
+var MAX_HTML_BYTES = 2 * 1024 * 1024;
+var ALLOWED_CONTENT_TYPES = ["text/html", "application/xhtml+xml"];
 var PageFetcher = class {
   timeout;
   maxRetries;
@@ -109,15 +113,30 @@ var PageFetcher = class {
         }, this.timeout);
       }
       const headers = this.userAgent ? { "user-agent": this.userAgent } : void 0;
-      const content = await fetch(url, { headers, signal: controller.signal }).then(
-        async (response) => {
-          const buffer = await response.arrayBuffer();
-          const contentType = response.headers.get("content-type") ?? "";
-          const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
-          const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? "utf-8");
-          return this.buildDOMResult(html, url);
+      const content = await fetch(url, { headers, signal: controller.signal }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
         }
-      );
+        const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+        const isAllowedContentType = ALLOWED_CONTENT_TYPES.some(
+          (allowedType) => contentType.includes(allowedType)
+        );
+        if (!isAllowedContentType) {
+          throw new Error(`Unsupported content type: ${contentType || "unknown"}`);
+        }
+        const contentLengthHeader = response.headers.get("content-length");
+        const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN;
+        if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+          throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+        }
+        const buffer = await response.arrayBuffer();
+        if (buffer.byteLength > MAX_HTML_BYTES) {
+          throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+        }
+        const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
+        const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? "utf-8");
+        return this.buildDOMResult(html, url);
+      });
       return { url, content };
     } catch (error) {
       const abortTimeout = error instanceof Error && error.name === "AbortError";
@@ -188,6 +207,7 @@ var JSONStylePrinter = class extends AbstractResourcePrinter {
 };
 
 // src/security.ts
+import { isIP } from "node:net";
 var ALLOWED_PROTOCOLS = ["http:", "https:"];
 var MAX_URL_LENGTH = 2048;
 var SUSPICIOUS_PATTERNS = [
@@ -198,7 +218,26 @@ var SUSPICIOUS_PATTERNS = [
   /on\w+=/i
   // Event handlers like onclick=
 ];
-function validateUrl(url) {
+function isPrivateHostname(hostname) {
+  const normalized = hostname.toLowerCase();
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) {
+    return true;
+  }
+  const ipType = isIP(normalized);
+  if (ipType === 0) {
+    return false;
+  }
+  if (ipType === 4) {
+    const octets = normalized.split(".").map(Number);
+    if (octets.length !== 4 || octets.some((octet) => Number.isNaN(octet))) {
+      return false;
+    }
+    const [a, b] = octets;
+    return a === 10 || a === 127 || a === 169 && b === 254 || a === 172 && b >= 16 && b <= 31 || a === 192 && b === 168 || a === 0;
+  }
+  return normalized === "::1" || normalized === "::" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe8") || normalized.startsWith("fe9") || normalized.startsWith("fea") || normalized.startsWith("feb");
+}
+function validateUrl(url, options = {}) {
   if (!url || !url.trim()) {
     return {
       isValid: false,
@@ -235,21 +274,28 @@ function validateUrl(url) {
       error: `Protocol ${parsedUrl.protocol} is not allowed. Allowed protocols: ${ALLOWED_PROTOCOLS.join(", ")}`
     };
   }
-  const hostname = parsedUrl.hostname.toLowerCase();
-  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname.startsWith("192.168.") || hostname.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
-  if (isLocalhost) {
-    console.warn(`Warning: Accessing local network resource: ${trimmedUrl}`);
+  if (parsedUrl.username || parsedUrl.password) {
+    return {
+      isValid: false,
+      error: "URLs with embedded credentials are not allowed"
+    };
+  }
+  if (!options.allowPrivateHosts && isPrivateHostname(parsedUrl.hostname)) {
+    return {
+      isValid: false,
+      error: "Private or loopback hostnames are blocked by default. Use --allow-private-hosts if you trust the target."
+    };
   }
   return {
     isValid: true,
     sanitizedUrl: parsedUrl.toString()
   };
 }
-function validateUrls(urls) {
+function validateUrls(urls, options = {}) {
   const validUrls = [];
   const errors = [];
   for (const url of urls) {
-    const result = validateUrl(url);
+    const result = validateUrl(url, options);
     if (result.isValid && result.sanitizedUrl) {
       validUrls.push(result.sanitizedUrl);
     } else {
@@ -341,54 +387,63 @@ async function runCli(argv = process.argv) {
       "--watch",
       "keep running: SIGWINCH re-fetches after resize, Ctrl-D releases in-flight requests, Ctrl-C exits"
     )
-  ).addOption(new Option("-A, --user-agent <value>", "override the HTTP User-Agent header")).action(async (urls, options) => {
-    try {
-      const { validUrls, errors } = validateUrls(urls);
-      if (errors.length > 0) {
-        console.error("\n\u274C URL Validation Errors:");
-        errors.forEach(({ url: invalidUrl, error }) => {
-          console.error(`  - ${invalidUrl}: ${error}`);
+  ).addOption(new Option("-A, --user-agent <value>", "override the HTTP User-Agent header")).addOption(
+    new Option(
+      "--allow-private-hosts",
+      "allow localhost/private-network targets (disabled by default for SSRF safety)"
+    )
+  ).action(
+    async (urls, options) => {
+      try {
+        const { validUrls, errors } = validateUrls(urls, {
+          allowPrivateHosts: options.allowPrivateHosts
         });
-      }
-      if (validUrls.length === 0) {
-        console.error("\n\u274C No valid URLs to process. Exiting.");
+        if (errors.length > 0) {
+          console.error("\n\u274C URL Validation Errors:");
+          errors.forEach(({ url: invalidUrl, error }) => {
+            console.error(`  - ${invalidUrl}: ${error}`);
+          });
+        }
+        if (validUrls.length === 0) {
+          console.error("\n\u274C No valid URLs to process. Exiting.");
+          process.exit(1);
+        }
+        console.error(`
+\u2705 Processing ${validUrls.length} valid URL(s)...`);
+        const pageFetcher = new PageFetcher(options.watch ? 0 : 1e4, 2, options.userAgent);
+        const execute = async () => {
+          const responses = await pageFetcher.fetchAll(validUrls);
+          const pageMetadatas = await buildPageMetadata(responses);
+          await printer.print(...pageMetadatas);
+        };
+        if (options.watch) {
+          process.stdin.resume();
+          process.on("SIGINT", () => process.exit(0));
+          let activeExecution = null;
+          process.stdin.on("end", () => {
+            activeExecution = null;
+          });
+          let winchTimer = null;
+          process.on("SIGWINCH", () => {
+            if (winchTimer !== null) clearTimeout(winchTimer);
+            winchTimer = setTimeout(() => {
+              winchTimer = null;
+              activeExecution = execute().catch((err) => {
+                console.error("\n\u274C An error occurred:", err instanceof Error ? err.message : err);
+              });
+            }, 150);
+          });
+          activeExecution = execute();
+          await activeExecution;
+        } else {
+          await execute();
+        }
+      } catch (error) {
+        console.error("\n\u274C An error occurred:", error instanceof Error ? error.message : error);
         process.exit(1);
       }
-      console.error(`
-\u2705 Processing ${validUrls.length} valid URL(s)...`);
-      const pageFetcher = new PageFetcher(options.watch ? 0 : 1e4, 2, options.userAgent);
-      const execute = async () => {
-        const responses = await pageFetcher.fetchAll(validUrls);
-        const pageMetadatas = await buildPageMetadata(responses);
-        await printer.print(...pageMetadatas);
-      };
-      if (options.watch) {
-        process.stdin.resume();
-        process.on("SIGINT", () => process.exit(0));
-        let activeExecution = null;
-        process.stdin.on("end", () => {
-          activeExecution = null;
-        });
-        let winchTimer = null;
-        process.on("SIGWINCH", () => {
-          if (winchTimer !== null) clearTimeout(winchTimer);
-          winchTimer = setTimeout(() => {
-            winchTimer = null;
-            activeExecution = execute().catch((err) => {
-              console.error("\n\u274C An error occurred:", err instanceof Error ? err.message : err);
-            });
-          }, 150);
-        });
-        activeExecution = execute();
-        await activeExecution;
-      } else {
-        await execute();
-      }
-    } catch (error) {
-      console.error("\n\u274C An error occurred:", error instanceof Error ? error.message : error);
-      process.exit(1);
     }
-  });
+  );
   program.command("file").description("extract resources from local file(s) via direct filesystem access").addArgument(fileArg).addOption(
     new Option("--no-failsafe", `bypass the ${MAX_FILES_FAILSAFE}-file limit safety check`)
   ).action(async (paths, options) => {

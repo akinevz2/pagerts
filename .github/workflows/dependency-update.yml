@@ -11,35 +11,45 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   update-dependencies:
     name: Update Dependencies
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
 
       - name: Check for outdated packages
         run: npm outdated || true
 
       - name: Update dependencies
         run: |
-          npm update
-          npm audit fix || true
+          npm update --package-lock-only
+          npm audit fix --package-lock-only || true
 
-      - name: Run tests
+      - name: Validate dependency update
         run: |
-          npm ci
+          npm ci --ignore-scripts
+          npm run lint
+          npm run type-check
           npm test
 
       - name: Create Pull Request

@@ -2,6 +2,8 @@
  * Security utilities for URL validation and sanitization
  */
 
+import { isIP } from 'node:net';
+
 const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 const MAX_URL_LENGTH = 2048;
 const SUSPICIOUS_PATTERNS = [
@@ -18,12 +20,58 @@ export interface ValidationResult {
   sanitizedUrl?: string;
 }
 
+export interface UrlValidationOptions {
+  allowPrivateHosts?: boolean;
+}
+
+function isPrivateHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+
+  if (normalized === 'localhost' || normalized.endsWith('.localhost')) {
+    return true;
+  }
+
+  const ipType = isIP(normalized);
+  if (ipType === 0) {
+    return false;
+  }
+
+  if (ipType === 4) {
+    const octets = normalized.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((octet) => Number.isNaN(octet))) {
+      return false;
+    }
+
+    const [a, b] = octets;
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      a === 0
+    );
+  }
+
+  // IPv6 private/internal ranges.
+  return (
+    normalized === '::1' ||
+    normalized === '::' ||
+    normalized.startsWith('fc') ||
+    normalized.startsWith('fd') ||
+    normalized.startsWith('fe8') ||
+    normalized.startsWith('fe9') ||
+    normalized.startsWith('fea') ||
+    normalized.startsWith('feb')
+  );
+}
+
 /**
  * Validates a URL for security concerns
  * @param url - The URL to validate
  * @returns ValidationResult object with validation status
  */
-export function validateUrl(url: string): ValidationResult {
+export function validateUrl(url: string, options: UrlValidationOptions = {}): ValidationResult {
   // Check if URL is empty or whitespace
   if (!url || !url.trim()) {
     return {
@@ -71,19 +119,19 @@ export function validateUrl(url: string): ValidationResult {
     };
   }
 
-  // Check for localhost/internal IPs in production (security consideration)
-  const hostname = parsedUrl.hostname.toLowerCase();
-  const isLocalhost =
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '::1' ||
-    hostname.startsWith('192.168.') ||
-    hostname.startsWith('10.') ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+  if (parsedUrl.username || parsedUrl.password) {
+    return {
+      isValid: false,
+      error: 'URLs with embedded credentials are not allowed',
+    };
+  }
 
-  if (isLocalhost) {
-    // Allow but warn about localhost URLs
-    console.warn(`Warning: Accessing local network resource: ${trimmedUrl}`);
+  if (!options.allowPrivateHosts && isPrivateHostname(parsedUrl.hostname)) {
+    return {
+      isValid: false,
+      error:
+        'Private or loopback hostnames are blocked by default. Use --allow-private-hosts if you trust the target.',
+    };
   }
 
   return {
@@ -97,7 +145,10 @@ export function validateUrl(url: string): ValidationResult {
  * @param urls - Array of URLs to validate
  * @returns Object with valid URLs and errors
  */
-export function validateUrls(urls: string[]): {
+export function validateUrls(
+  urls: string[],
+  options: UrlValidationOptions = {}
+): {
   validUrls: string[];
   errors: Array<{ url: string; error: string }>;
 } {
@@ -105,7 +156,7 @@ export function validateUrls(urls: string[]): {
   const errors: Array<{ url: string; error: string }> = [];
 
   for (const url of urls) {
-    const result = validateUrl(url);
+    const result = validateUrl(url, options);
     if (result.isValid && result.sanitizedUrl) {
       validUrls.push(result.sanitizedUrl);
     } else {

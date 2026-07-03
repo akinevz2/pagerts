@@ -70,6 +70,12 @@ Override the HTTP user-agent for remote fetches:
 pagerts fetch --user-agent "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0" https://example.com
 ```
 
+Allow fetching from localhost/private-network targets (opt-in):
+
+```bash
+pagerts fetch --allow-private-hosts http://127.0.0.1:3000
+```
+
 Fetch from multiple remote URLs:
 
 ```bash
@@ -113,10 +119,13 @@ PagerTS takes security seriously. See [SECURITY.md](./SECURITY.md) for:
 ### Built-in Security Features
 
 - ✅ URL validation for remote fetches (only allows `http://` and `https://`)
+- ✅ Private/loopback hosts are blocked by default for remote fetches (SSRF mitigation)
 - ✅ Local filesystem parsing through plain paths and `file://` inputs on the root command
 - ✅ Input sanitization to prevent XSS attacks
 - ✅ Rate limiting (50 requests/minute by default)
 - ✅ Request timeouts to prevent hanging
+- ✅ HTTP status and content-type checks for remote responses
+- ✅ Maximum remote HTML response size enforcement (2 MiB)
 - ✅ Maximum URL length enforcement
 - ✅ Suspicious pattern detection
 - ✅ Safe HTML parsing (no script execution)
