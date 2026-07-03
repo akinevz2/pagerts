@@ -3,9 +3,16 @@ import { PageFetcher } from '../page/PageFetcher';
 describe('PageFetcher', () => {
   let pageFetcher: PageFetcher;
   const originalFetch = global.fetch;
+  const sampleHtml = '<html><head><title>Example</title></head><body></body></html>';
+
+  const makeHtmlResponse = (): Response =>
+    new Response(sampleHtml, {
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    });
 
   beforeEach(() => {
-    pageFetcher = new PageFetcher();
+    // Disable retries in unit tests to avoid pending backoff timers.
+    pageFetcher = new PageFetcher(10000, 0);
   });
 
   afterEach(() => {
@@ -15,11 +22,7 @@ describe('PageFetcher', () => {
 
   describe('fetchAll', () => {
     it('should send an overridden user-agent when provided', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(
-        new Response('<html><head><title>Example</title></head><body></body></html>', {
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-        })
-      );
+      const fetchMock = jest.fn().mockResolvedValue(makeHtmlResponse());
       global.fetch = fetchMock as typeof fetch;
 
       const customFetcher = new PageFetcher(10000, 0, 'Mozilla/5.0 Custom Test Browser');
@@ -35,6 +38,9 @@ describe('PageFetcher', () => {
     });
 
     it('should fetch valid URLs', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(makeHtmlResponse());
+      global.fetch = fetchMock as typeof fetch;
+
       const urls = ['https://example.com'];
       const responses = await pageFetcher.fetchAll(urls);
 
@@ -43,6 +49,11 @@ describe('PageFetcher', () => {
     });
 
     it('should handle invalid URLs gracefully', async () => {
+      const fetchMock = jest
+        .fn()
+        .mockRejectedValue(new Error('getaddrinfo ENOTFOUND test.invalid'));
+      global.fetch = fetchMock as typeof fetch;
+
       const urls = ['https://this-domain-definitely-does-not-exist-12345.com'];
       const responses = await pageFetcher.fetchAll(urls);
 
@@ -53,6 +64,18 @@ describe('PageFetcher', () => {
     });
 
     it('should handle multiple URLs', async () => {
+      const fetchMock = jest.fn().mockImplementation(async (input: string | URL | Request) => {
+        const url =
+          typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+        if (url.includes('example.org')) {
+          return new Response('<html><head><title>Example Org</title></head><body></body></html>', {
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+          });
+        }
+        return makeHtmlResponse();
+      });
+      global.fetch = fetchMock as typeof fetch;
+
       const urls = ['https://example.com', 'https://example.org'];
       const responses = await pageFetcher.fetchAll(urls);
 
@@ -60,8 +83,13 @@ describe('PageFetcher', () => {
     });
 
     it('should have timeout for slow requests', async () => {
-      const slowFetcher = new PageFetcher(100, 0); // 100ms timeout, no retries
-      const urls = ['https://httpbin.org/delay/5']; // This will timeout
+      const timeoutError = new Error('The operation was aborted');
+      Object.defineProperty(timeoutError, 'name', { value: 'AbortError' });
+      const fetchMock = jest.fn().mockRejectedValue(timeoutError);
+      global.fetch = fetchMock as typeof fetch;
+
+      const slowFetcher = new PageFetcher(100, 0);
+      const urls = ['https://httpbin.org/delay/5'];
 
       const responses = await slowFetcher.fetchAll(urls);
       expect(responses.length).toBeGreaterThan(0);
