@@ -95,68 +95,66 @@ export class PageFetcher {
         headers,
         signal: controller.signal,
         redirect: 'manual',
-      }).then(
-        async (response) => {
-          if (response.status >= 300 && response.status < 400) {
-            const location = response.headers.get('location');
-            if (!location) {
-              throw new Error(`Redirect response missing Location header (HTTP ${response.status})`);
-            }
+      }).then(async (response) => {
+        if (response.status >= 300 && response.status < 400) {
+          const location = response.headers.get('location');
+          if (!location) {
+            throw new Error(`Redirect response missing Location header (HTTP ${response.status})`);
+          }
 
-            if (redirectCount >= MAX_REDIRECTS) {
-              throw new Error(`Too many redirects (max ${MAX_REDIRECTS})`);
-            }
+          if (redirectCount >= MAX_REDIRECTS) {
+            throw new Error(`Too many redirects (max ${MAX_REDIRECTS})`);
+          }
 
-            const redirectedUrl = new URL(location, url).toString();
-            const validation = validateUrl(redirectedUrl, {
-              allowPrivateHosts: this.allowPrivateHosts,
-            });
+          const redirectedUrl = new URL(location, url).toString();
+          const validation = validateUrl(redirectedUrl, {
+            allowPrivateHosts: this.allowPrivateHosts,
+          });
 
-            if (!validation.isValid || !validation.sanitizedUrl) {
-              throw new Error(
-                `Blocked unsafe redirect target: ${validation.error ?? 'Invalid redirect URL'}`
-              );
-            }
-
-            return this.fetchPage(validation.sanitizedUrl, retryCount, redirectCount + 1).then(
-              (result) => {
-                if (!result.content) {
-                  throw new Error(result.error ?? 'Unknown redirect fetch error');
-                }
-
-                return result.content;
-              }
+          if (!validation.isValid || !validation.sanitizedUrl) {
+            throw new Error(
+              `Blocked unsafe redirect target: ${validation.error ?? 'Invalid redirect URL'}`
             );
           }
 
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-          }
+          return this.fetchPage(validation.sanitizedUrl, retryCount, redirectCount + 1).then(
+            (result) => {
+              if (!result.content) {
+                throw new Error(result.error ?? 'Unknown redirect fetch error');
+              }
 
-          const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
-          const isAllowedContentType = ALLOWED_CONTENT_TYPES.some((allowedType) =>
-            contentType.includes(allowedType)
+              return result.content;
+            }
           );
-          if (!isAllowedContentType) {
-            throw new Error(`Unsupported content type: ${contentType || 'unknown'}`);
-          }
-
-          const contentLengthHeader = response.headers.get('content-length');
-          const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN;
-          if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
-            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
-          }
-
-          const buffer = await this.readResponseWithLimit(response);
-          if (buffer.byteLength > MAX_HTML_BYTES) {
-            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
-          }
-
-          const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
-          const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? 'utf-8');
-          return this.buildDOMResult(html, url);
         }
-      );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+        }
+
+        const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
+        const isAllowedContentType = ALLOWED_CONTENT_TYPES.some((allowedType) =>
+          contentType.includes(allowedType)
+        );
+        if (!isAllowedContentType) {
+          throw new Error(`Unsupported content type: ${contentType || 'unknown'}`);
+        }
+
+        const contentLengthHeader = response.headers.get('content-length');
+        const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN;
+        if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+          throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+        }
+
+        const buffer = await this.readResponseWithLimit(response);
+        if (buffer.byteLength > MAX_HTML_BYTES) {
+          throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+        }
+
+        const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
+        const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? 'utf-8');
+        return this.buildDOMResult(html, url);
+      });
 
       return { url, content };
     } catch (error) {

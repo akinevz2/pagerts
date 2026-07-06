@@ -6,7 +6,8 @@ export class LogStylePrinter extends AbstractResourcePrinter {
     return Array.from(value)
       .filter((char) => {
         const codePoint = char.codePointAt(0) ?? 0;
-        const isControl = (codePoint >= 0 && codePoint <= 31) || (codePoint >= 127 && codePoint <= 159);
+        const isControl =
+          (codePoint >= 0 && codePoint <= 31) || (codePoint >= 127 && codePoint <= 159);
         return !isControl;
       })
       .join('');
