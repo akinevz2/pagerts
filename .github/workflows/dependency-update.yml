@@ -103,6 +103,7 @@ jobs:
               --repo "$REPOSITORY" \
               --base "$BASE_BRANCH" \
               --head "$BRANCH_NAME" \
+              --limit 1 \
               --json number \
               --jq '.[0].number'
           )"
