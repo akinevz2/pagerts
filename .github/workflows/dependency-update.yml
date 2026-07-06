@@ -113,12 +113,18 @@ jobs:
             exit 0
           fi
 
+          pr_body="$(
+            printf '%s\n\n%s\n' \
+              "Automated dependency updates." \
+              "Please review the changes and ensure all tests pass."
+          )"
+
           if ! gh pr create \
             --repo "$REPOSITORY" \
             --base "$BASE_BRANCH" \
             --head "$BRANCH_NAME" \
             --title "chore: automated dependency updates" \
-            --body $'Automated dependency updates.\n\nPlease review the changes and ensure all tests pass.'; then
+            --body "$pr_body"; then
             {
               echo "## Dependency update PR skipped"
               echo
