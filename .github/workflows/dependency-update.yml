@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -52,15 +54,64 @@ jobs:
           npm run type-check
           npm test
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: update dependencies'
-          title: 'chore: automated dependency updates'
-          body: |
-            Automated dependency updates.
+      - name: Create or update dependency pull request
+        env:
+          BASE_BRANCH: ${{ github.ref_name }}
+          BRANCH_NAME: automated-dependency-updates
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
 
-            Please review the changes and ensure all tests pass.
-          branch: automated-dependency-updates
-          delete-branch: true
+          if git diff --quiet --exit-code -- package-lock.json; then
+            echo "No dependency updates were produced."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B "$BRANCH_NAME"
+          git add package-lock.json
+          git commit -m "chore: update dependencies"
+
+          remote_url="https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git"
+
+          if ! git push --force-with-lease "$remote_url" "HEAD:refs/heads/${BRANCH_NAME}"; then
+            {
+              echo "## Dependency update PR skipped"
+              echo
+              echo "GitHub blocked the workflow token from pushing \`${BRANCH_NAME}\`."
+              echo "Enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** to let this job open dependency update PRs."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          pr_number="$(
+            gh pr list \
+              --repo "$REPOSITORY" \
+              --base "$BASE_BRANCH" \
+              --head "$BRANCH_NAME" \
+              --json number \
+              --jq '.[0].number'
+          )"
+
+          if [[ -n "$pr_number" ]]; then
+            echo "Dependency update pull request #$pr_number already exists."
+            exit 0
+          fi
+
+          if ! gh pr create \
+            --repo "$REPOSITORY" \
+            --base "$BASE_BRANCH" \
+            --head "$BRANCH_NAME" \
+            --title "chore: automated dependency updates" \
+            --body $'Automated dependency updates.\n\nPlease review the changes and ensure all tests pass.'; then
+            {
+              echo "## Dependency update PR skipped"
+              echo
+              echo "GitHub blocked the workflow token from creating a pull request from \`${BRANCH_NAME}\`."
+              echo "Enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** to let this job open dependency update PRs."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
