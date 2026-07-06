@@ -75,9 +75,20 @@ jobs:
           git add package-lock.json
           git commit -m "chore: update dependencies"
 
-          remote_url="https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git"
+          gh auth setup-git
+          remote_sha="$(git ls-remote --heads origin "$BRANCH_NAME" | cut -f1)"
 
-          if ! git push --force-with-lease "$remote_url" "HEAD:refs/heads/${BRANCH_NAME}"; then
+          if [[ -n "$remote_sha" ]]; then
+            push_args=(
+              "--force-with-lease=refs/heads/${BRANCH_NAME}:${remote_sha}"
+              origin
+              "HEAD:refs/heads/${BRANCH_NAME}"
+            )
+          else
+            push_args=(origin "HEAD:refs/heads/${BRANCH_NAME}")
+          fi
+
+          if ! git push "${push_args[@]}"; then
             {
               echo "## Dependency update PR skipped"
               echo
