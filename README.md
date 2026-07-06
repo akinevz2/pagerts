@@ -250,6 +250,16 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Changelog
 
+Full release history is available in [CHANGELOG.md](./CHANGELOG.md).
+
+### v1.5.6
+
+- Hardened remote fetch SSRF protection by validating redirect targets and enforcing a redirect limit.
+- Enforced remote HTML size limits during streaming reads to reduce memory-pressure DoS risk.
+- Sanitized log-style output to strip terminal control characters from untrusted page content.
+- Added regression tests for redirect validation, streamed size limiting, and terminal output sanitization.
+- Added npm allowScripts approvals for install-script dependencies to improve strict CI compatibility.
+
 ### v1.5.3
 
 - Added `--user-agent` support to the `fetch` command so callers can override the HTTP User-Agent header for remote requests.
