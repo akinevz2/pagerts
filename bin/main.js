@@ -81,132 +81,6 @@ var ResourceExtractor = class extends AbstractExtractor {
 
 // src/page/PageFetcher.ts
 import { parseHTML } from "linkedom";
-var MAX_HTML_BYTES = 2 * 1024 * 1024;
-var ALLOWED_CONTENT_TYPES = ["text/html", "application/xhtml+xml"];
-var PageFetcher = class {
-  timeout;
-  maxRetries;
-  userAgent;
-  constructor(timeout = 1e4, maxRetries = 2, userAgent) {
-    this.timeout = timeout;
-    this.maxRetries = maxRetries;
-    this.userAgent = userAgent;
-  }
-  buildDOMResult(html, url) {
-    const { document } = parseHTML(html);
-    return { window: { document }, url };
-  }
-  decodeHtml(buffer, charset) {
-    try {
-      return new TextDecoder(charset).decode(new Uint8Array(buffer));
-    } catch {
-      return new TextDecoder("utf-8").decode(new Uint8Array(buffer));
-    }
-  }
-  async fetchPage(url, retryCount = 0) {
-    const controller = new AbortController();
-    let timeoutId = null;
-    try {
-      if (this.timeout > 0) {
-        timeoutId = setTimeout(() => {
-          controller.abort(new Error("Request timeout"));
-        }, this.timeout);
-      }
-      const headers = this.userAgent ? { "user-agent": this.userAgent } : void 0;
-      const content = await fetch(url, { headers, signal: controller.signal }).then(
-        async (response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-          }
-          const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-          const isAllowedContentType = ALLOWED_CONTENT_TYPES.some(
-            (allowedType) => contentType.includes(allowedType)
-          );
-          if (!isAllowedContentType) {
-            throw new Error(`Unsupported content type: ${contentType || "unknown"}`);
-          }
-          const contentLengthHeader = response.headers.get("content-length");
-          const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN;
-          if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
-            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
-          }
-          const buffer = await response.arrayBuffer();
-          if (buffer.byteLength > MAX_HTML_BYTES) {
-            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
-          }
-          const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
-          const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? "utf-8");
-          return this.buildDOMResult(html, url);
-        }
-      );
-      return { url, content };
-    } catch (error) {
-      const abortTimeout = error instanceof Error && error.name === "AbortError";
-      const message = abortTimeout ? "Request timeout" : error instanceof Error ? error.message : "Unknown error";
-      if (retryCount < this.maxRetries && this.isRetryableError(message)) {
-        process.stderr.write(`Retrying ${url} (attempt ${retryCount + 1}/${this.maxRetries})...
-`);
-        await this.delay(1e3 * (retryCount + 1));
-        return this.fetchPage(url, retryCount + 1);
-      }
-      return { url, error: `Failed to fetch: ${message}` };
-    } finally {
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-    }
-  }
-  isRetryableError(message) {
-    const retryablePatterns = [/timeout/i, /ECONNRESET/i, /ETIMEDOUT/i, /ENOTFOUND/i, /network/i];
-    return retryablePatterns.some((pattern) => pattern.test(message));
-  }
-  delay(ms) {
-    return new Promise((resolve2) => setTimeout(resolve2, ms));
-  }
-  async fetchAll(urls) {
-    const responses = await Promise.all(urls.map((url) => this.fetchPage(url)));
-    return responses.filter((response) => response.content !== void 0 || response.error);
-  }
-};
-
-// src/page/FileFetcher.ts
-import { readFile } from "node:fs/promises";
-import { parseHTML as parseHTML2 } from "linkedom";
-var MAX_FILES_FAILSAFE = 254;
-var FileFetcher = class {
-  buildDOMResult(html, filePath) {
-    const { document } = parseHTML2(html);
-    return { window: { document }, url: `file://${filePath}` };
-  }
-  async fetchFile(filePath) {
-    try {
-      const html = await readFile(filePath, "utf-8");
-      return { path: filePath, content: this.buildDOMResult(html, filePath) };
-    } catch (error) {
-      return {
-        path: filePath,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-  }
-  async fetchAll(filePaths) {
-    return Promise.all(filePaths.map((p) => this.fetchFile(p)));
-  }
-};
-
-// src/printers/AbstractResourcePrinter.ts
-var AbstractResourcePrinter = class {
-  constructor() {
-  }
-};
-
-// src/printers/JSONStylePrinter.ts
-var JSONStylePrinter = class extends AbstractResourcePrinter {
-  print(...pages) {
-    const json = JSON.stringify(pages);
-    process.stdout.write(json + "\n");
-  }
-};
 
 // src/security.ts
 import { isIP } from "node:net";
@@ -310,6 +184,193 @@ function validateUrls(urls, options = {}) {
   return { validUrls, errors };
 }
 
+// src/page/PageFetcher.ts
+var MAX_HTML_BYTES = 2 * 1024 * 1024;
+var ALLOWED_CONTENT_TYPES = ["text/html", "application/xhtml+xml"];
+var MAX_REDIRECTS = 5;
+var PageFetcher = class {
+  timeout;
+  maxRetries;
+  userAgent;
+  allowPrivateHosts;
+  constructor(timeout = 1e4, maxRetries = 2, userAgent, allowPrivateHosts = false) {
+    this.timeout = timeout;
+    this.maxRetries = maxRetries;
+    this.userAgent = userAgent;
+    this.allowPrivateHosts = allowPrivateHosts;
+  }
+  buildDOMResult(html, url) {
+    const { document } = parseHTML(html);
+    return { window: { document }, url };
+  }
+  decodeHtml(buffer, charset) {
+    try {
+      return new TextDecoder(charset).decode(new Uint8Array(buffer));
+    } catch {
+      return new TextDecoder("utf-8").decode(new Uint8Array(buffer));
+    }
+  }
+  async readResponseWithLimit(response) {
+    if (!response.body) {
+      return new ArrayBuffer(0);
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let totalBytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_HTML_BYTES) {
+        await reader.cancel();
+        throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+      }
+      chunks.push(value);
+    }
+    const merged = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return merged.buffer;
+  }
+  async fetchPage(url, retryCount = 0, redirectCount = 0) {
+    const controller = new AbortController();
+    let timeoutId = null;
+    try {
+      if (this.timeout > 0) {
+        timeoutId = setTimeout(() => {
+          controller.abort(new Error("Request timeout"));
+        }, this.timeout);
+      }
+      const headers = this.userAgent ? { "user-agent": this.userAgent } : void 0;
+      const content = await fetch(url, {
+        headers,
+        signal: controller.signal,
+        redirect: "manual"
+      }).then(
+        async (response) => {
+          if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get("location");
+            if (!location) {
+              throw new Error(`Redirect response missing Location header (HTTP ${response.status})`);
+            }
+            if (redirectCount >= MAX_REDIRECTS) {
+              throw new Error(`Too many redirects (max ${MAX_REDIRECTS})`);
+            }
+            const redirectedUrl = new URL(location, url).toString();
+            const validation = validateUrl(redirectedUrl, {
+              allowPrivateHosts: this.allowPrivateHosts
+            });
+            if (!validation.isValid || !validation.sanitizedUrl) {
+              throw new Error(
+                `Blocked unsafe redirect target: ${validation.error ?? "Invalid redirect URL"}`
+              );
+            }
+            return this.fetchPage(validation.sanitizedUrl, retryCount, redirectCount + 1).then(
+              (result) => {
+                if (!result.content) {
+                  throw new Error(result.error ?? "Unknown redirect fetch error");
+                }
+                return result.content;
+              }
+            );
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+          }
+          const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+          const isAllowedContentType = ALLOWED_CONTENT_TYPES.some(
+            (allowedType) => contentType.includes(allowedType)
+          );
+          if (!isAllowedContentType) {
+            throw new Error(`Unsupported content type: ${contentType || "unknown"}`);
+          }
+          const contentLengthHeader = response.headers.get("content-length");
+          const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN;
+          if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+          }
+          const buffer = await this.readResponseWithLimit(response);
+          if (buffer.byteLength > MAX_HTML_BYTES) {
+            throw new Error(`Response exceeds max allowed size (${MAX_HTML_BYTES} bytes)`);
+          }
+          const charsetMatch = /charset=([^\s;]+)/i.exec(contentType);
+          const html = this.decodeHtml(buffer, charsetMatch?.[1] ?? "utf-8");
+          return this.buildDOMResult(html, url);
+        }
+      );
+      return { url, content };
+    } catch (error) {
+      const abortTimeout = error instanceof Error && error.name === "AbortError";
+      const message = abortTimeout ? "Request timeout" : error instanceof Error ? error.message : "Unknown error";
+      if (retryCount < this.maxRetries && this.isRetryableError(message)) {
+        process.stderr.write(`Retrying ${url} (attempt ${retryCount + 1}/${this.maxRetries})...
+`);
+        await this.delay(1e3 * (retryCount + 1));
+        return this.fetchPage(url, retryCount + 1, redirectCount);
+      }
+      return { url, error: `Failed to fetch: ${message}` };
+    } finally {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+  isRetryableError(message) {
+    const retryablePatterns = [/timeout/i, /ECONNRESET/i, /ETIMEDOUT/i, /ENOTFOUND/i, /network/i];
+    return retryablePatterns.some((pattern) => pattern.test(message));
+  }
+  delay(ms) {
+    return new Promise((resolve2) => setTimeout(resolve2, ms));
+  }
+  async fetchAll(urls) {
+    const responses = await Promise.all(urls.map((url) => this.fetchPage(url)));
+    return responses.filter((response) => response.content !== void 0 || response.error);
+  }
+};
+
+// src/page/FileFetcher.ts
+import { readFile } from "node:fs/promises";
+import { parseHTML as parseHTML2 } from "linkedom";
+var MAX_FILES_FAILSAFE = 254;
+var FileFetcher = class {
+  buildDOMResult(html, filePath) {
+    const { document } = parseHTML2(html);
+    return { window: { document }, url: `file://${filePath}` };
+  }
+  async fetchFile(filePath) {
+    try {
+      const html = await readFile(filePath, "utf-8");
+      return { path: filePath, content: this.buildDOMResult(html, filePath) };
+    } catch (error) {
+      return {
+        path: filePath,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  async fetchAll(filePaths) {
+    return Promise.all(filePaths.map((p) => this.fetchFile(p)));
+  }
+};
+
+// src/printers/AbstractResourcePrinter.ts
+var AbstractResourcePrinter = class {
+  constructor() {
+  }
+};
+
+// src/printers/JSONStylePrinter.ts
+var JSONStylePrinter = class extends AbstractResourcePrinter {
+  print(...pages) {
+    const json = JSON.stringify(pages);
+    process.stdout.write(json + "\n");
+  }
+};
+
 // src/main.ts
 var require2 = createRequire(import.meta.url);
 var pkg = require2("../package.json");
@@ -412,7 +473,12 @@ async function runCli(argv = process.argv) {
         }
         console.error(`
 \u2705 Processing ${validUrls.length} valid URL(s)...`);
-        const pageFetcher = new PageFetcher(options.watch ? 0 : 1e4, 2, options.userAgent);
+        const pageFetcher = new PageFetcher(
+          options.watch ? 0 : 1e4,
+          2,
+          options.userAgent,
+          options.allowPrivateHosts
+        );
         const execute = async () => {
           const responses = await pageFetcher.fetchAll(validUrls);
           const pageMetadatas = await buildPageMetadata(responses);

@@ -160,7 +160,12 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
 
           console.error(`\n✅ Processing ${validUrls.length} valid URL(s)...`);
 
-          const pageFetcher = new PageFetcher(options.watch ? 0 : 10000, 2, options.userAgent);
+          const pageFetcher = new PageFetcher(
+            options.watch ? 0 : 10000,
+            2,
+            options.userAgent,
+            options.allowPrivateHosts
+          );
 
           const execute = async (): Promise<void> => {
             const responses = await pageFetcher.fetchAll(validUrls);
