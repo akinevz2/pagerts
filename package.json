@@ -68,5 +68,11 @@
     "test-exclude": "^8.0.0",
     "glob": "^13.0.6",
     "js-yaml": "^4.1.1"
+  },
+  "allowScripts": {
+    "@swc/core@1.15.33": true,
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "unrs-resolver@1.11.1": true
   }
 }
