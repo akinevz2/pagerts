@@ -2,6 +2,15 @@
 
 All notable changes to PagerTS are documented in this file.
 
+## v1.5.8
+
+- Bumped `js-yaml` override to `^4.3.1` to remediate high-severity quadratic CPU consumption vulnerability (CVE-2026-59870 / GHSA-5p4m-2wfm-xmqj) affecting js-yaml 4.0.0–4.3.0.
+- Restores the CI security-audit gate to passing.
+
+## v1.5.7
+
+- Bumped `brace-expansion` override to `^2.1.3` to remediate a dependency-tree vulnerability.
+
 ## v1.5.6
 
 - Hardened remote fetch SSRF protection by validating redirect targets and enforcing a redirect limit.
