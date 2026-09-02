@@ -2,6 +2,11 @@
 
 All notable changes to PagerTS are documented in this file.
 
+## v1.5.9
+
+- Bumped `browserslist` to `4.28.8` (via `npm audit fix`) to remediate high-severity vulnerabilities: unbounded memory growth without cache eviction leading to OOM (GHSA-c83g-rgw3-j3cx) and uncaught crash / prototype write via untrusted `browserslist-stats.json` (GHSA-73wf-gq98-2v4g) affecting browserslist <=4.28.6.
+- Refreshed transitive dev dependencies (`update-browserslist-db` 1.3.2, `caniuse-lite` 1.0.30001810).
+
 ## v1.5.8
 
 - Bumped `js-yaml` override to `^4.3.1` to remediate high-severity quadratic CPU consumption vulnerability (CVE-2026-59870 / GHSA-5p4m-2wfm-xmqj) affecting js-yaml 4.0.0–4.3.0.
