@@ -17,6 +17,20 @@ PagerTS is a secure, modern command-line utility that transforms URLs into struc
 - 🗂️ **Local File Support**: bare `pagerts` parses local file paths and `file:///...` inputs
 - 🧭 **Request Header Override**: Optional `--user-agent` flag for sites that behave differently by client
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Basic Usage](#basic-usage)
+  - [Watch Mode](#watch-mode)
+  - [File Limit Failsafe](#file-limit-failsafe)
+  - [Output Format](#output-format)
+- [Security](#security)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
+
 ## Installation
 
 ### Global Installation
@@ -58,6 +72,12 @@ Extract resources from a local file URL:
 pagerts file:///path/to/file.html
 ```
 
+Extract from local files via the explicit `file` subcommand (direct filesystem access, multiple files):
+
+```bash
+pagerts file ./page1.html ./page2.html
+```
+
 Fetch resources from a remote URL:
 
 ```bash
@@ -81,6 +101,28 @@ Fetch from multiple remote URLs:
 ```bash
 pagerts fetch https://example.com https://example.org
 ```
+
+### Watch Mode
+
+Keep a remote fetch alive and re-extract resources as your terminal resizes (useful for monitoring a page during development):
+
+```bash
+pagerts fetch --watch https://example.com
+```
+
+- Terminal resize (`SIGWINCH`) triggers a fresh fetch
+- `Ctrl-D` releases in-flight requests
+- `Ctrl-C` exits
+
+### File Limit Failsafe
+
+Directory scanning is capped at 254 files to prevent runaway scans. To bypass it deliberately (e.g. for very large local sites):
+
+```bash
+pagerts --no-failsafe ./big-site/
+```
+
+Applies to both the root command and the `file` subcommand.
 
 ### Output Format
 

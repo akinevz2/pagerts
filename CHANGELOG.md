@@ -2,6 +2,10 @@
 
 All notable changes to PagerTS are documented in this file.
 
+## v1.5.11
+
+- Improved README documentation: added a table of contents and documented previously missing CLI features — the `file` subcommand, the `fetch --watch` resize-aware mode, and the `--no-failsafe` flag for bypassing the file-limit safety check.
+
 ## v1.5.10
 
 - Bumped `@humanfs/node` to `0.16.8` (via `npm audit fix`) to remediate a moderate-severity vulnerability: recursive copy follows symlinked files and copies data from outside the source tree (GHSA-p498-v437-472g) affecting @humanfs/node < 0.16.8, a transitive dev dependency of eslint.
