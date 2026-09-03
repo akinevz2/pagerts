@@ -2,6 +2,10 @@
 
 All notable changes to PagerTS are documented in this file.
 
+## v1.5.10
+
+- Bumped `@humanfs/node` to `0.16.8` (via `npm audit fix`) to remediate a moderate-severity vulnerability: recursive copy follows symlinked files and copies data from outside the source tree (GHSA-p498-v437-472g) affecting @humanfs/node < 0.16.8, a transitive dev dependency of eslint.
+
 ## v1.5.9
 
 - Bumped `browserslist` to `4.28.8` (via `npm audit fix`) to remediate high-severity vulnerabilities: unbounded memory growth without cache eviction leading to OOM (GHSA-c83g-rgw3-j3cx) and uncaught crash / prototype write via untrusted `browserslist-stats.json` (GHSA-73wf-gq98-2v4g) affecting browserslist <=4.28.6.
