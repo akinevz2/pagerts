@@ -24,6 +24,8 @@
     "format:check": "prettier --check \"**/*.{ts,js,mjs,cjs,json,yml,yaml,md}\"",
     "security:audit": "npm audit --audit-level=moderate",
     "security:check": "npm run security:audit && npm run lint",
+    "security:fix": "npm audit fix && npm run lint:fix && npm run format",
+    "prepush": "npm run format:check && npm run lint && npm run type-check && npm run security:audit && npm test",
     "start": "node ./bin/main.js",
     "dev": "tsx src/main.ts",
     "prepare": "npm run build"

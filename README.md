@@ -183,6 +183,20 @@ npm run security:audit
 
 # Complete security check (audit + lint)
 npm run security:check
+
+# Fix security vulnerabilities and apply lint/format fixes
+npm run security:fix
+
+# Run all pre-push checks (format + lint + type-check + audit + tests)
+npm run prepush
+```
+
+#### Pre-push Hook
+
+A git pre-push hook runs all quality checks before every push. After cloning, activate it once with:
+
+```bash
+git config core.hooksPath .githooks
 ```
 
 ### Project Structure

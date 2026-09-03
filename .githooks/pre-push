@@ -9,19 +9,6 @@ if [[ ! -d node_modules ]]; then
   npm ci
 fi
 
-echo "[pre-push] Running format check..."
-npm run format:check
-
-echo "[pre-push] Running lint..."
-npm run lint
-
-echo "[pre-push] Running type-check..."
-npm run type-check
-
-echo "[pre-push] Running tests with coverage..."
-npm test
-
-echo "[pre-push] Running security audit..."
-npm run security:audit
+npm run prepush
 
 echo "[pre-push] All checks passed. Proceeding with push."
