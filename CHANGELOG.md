@@ -2,6 +2,10 @@
 
 All notable changes to PagerTS are documented in this file.
 
+## v1.5.12
+
+- Bumped `js-yaml` to `4.3.2` (via `npm audit fix`) to remediate a high-severity vulnerability: `maxTotalMergeKeys` does not limit CPU use for empty merge sources, allowing CPU exhaustion (GHSA-2883-xcg3-v3hh) affecting js-yaml 4.0.0–4.3.1.
+
 ## v1.5.11
 
 - Improved README documentation: added a table of contents and documented previously missing CLI features — the `file` subcommand, the `fetch --watch` resize-aware mode, and the `--no-failsafe` flag for bypassing the file-limit safety check.
