@@ -24,7 +24,6 @@ export class FileFetcher {
   async fetchFile(filePath: string): Promise<FileResponse> {
     try {
       // filePath is supplied directly by the CLI user, not derived from network input.
-      // eslint-disable-next-line security/detect-non-literal-fs-filename
       const html = await readFile(filePath, 'utf-8');
       return { path: filePath, content: this.buildDOMResult(html, filePath) };
     } catch (error) {
