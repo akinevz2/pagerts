@@ -1,6 +1,10 @@
 export default {
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/unit/**/*.ts'],
+  roots: ['<rootDir>'],
+  testMatch: ['**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
+  verbose: true,
+  collectCoverage: false,
+  testPathIgnorePatterns: ['/node_modules/'],
 };
