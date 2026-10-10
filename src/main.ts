@@ -1,56 +1,51 @@
 #!/usr/bin/env node
-import { Command, createArgument, Option } from 'commander';
+import { Command, createArgument, createOption, Option } from 'commander';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 
 import { PageExtractor, ResourceExtractor } from './extractors/index.js';
-import { FileFetcher, MAX_FILES_FAILSAFE, PageFetcher, type PageMetadata } from './page/index.js';
+import { FileFetcher, MAX_FILES_FAILSAFE, PageFetcher, type DOMResult, type PageMetadata } from './page/index.js';
 import { JSONStylePrinter } from './printers/index.js';
 import { validateUrls } from './security.js';
 
-const require = createRequire(import.meta.url);
-const pkg = require('../package.json') as {
-  description: string;
-  name: string;
-  version: string;
-};
+import { description, name, version } from '../package.json';
 
-const { description, name, version } = pkg;
+const pagerts = new Command();
 
-const program = new Command();
-
-const urlArg = createArgument('<url...>', 'remote https://URL to extract from');
-const fileArg = createArgument('<paths...>', 'local file paths to extract from');
+const targets = createArgument('<uri...>', 'remote URLs or local file URIs');
+const printerOption = createOption('--printer', 'log|json|plain', {
+  defaultOption: true,
+});
 
 // Shared extractor instances.
 const pageExtractor = new PageExtractor();
 const resourceExtractor = new ResourceExtractor(['a', 'meta', 'link', 'embed', 'script']);
-const printer = new JSONStylePrinter();
+
+function buildPrinter(printerType: string): import('./printers/index').AbstractResourcePrinter {
+  return import('./printers/index').PrinterFactory.createPrinter(
+    printerType as import('./printers/index').PrinterType
+  );
+}
 
 async function buildPageMetadata(
   responses: Array<{
-    url?: string;
-    path?: string;
-    content?: import('./page/index.js').DOMResult;
-    error?: string;
   }>
 ): Promise<PageMetadata[]> {
-  const pageMetadatas: PageMetadata[] = [];
 
-  for (const { content, url: responseUrl, path, error } of responses) {
-    const resolvedUrl = responseUrl ?? path ?? '';
-    const resources =
-      error !== undefined || !content ? [] : await resourceExtractor.extract(content);
-    const descriptor =
-      error !== undefined || !content
-        ? { url: resolvedUrl, error: error ?? 'Unknown error', resources }
-        : await pageExtractor.extract(content);
-    pageMetadatas.push({ ...descriptor, resources });
-  }
+  return responses.map(({ content, url: responseUrl, path, error }) => {
 
-  return pageMetadatas;
+    // Happy path: extract resources and page metadata
+    const resources = await resourceExtractor.extract(
+      content.window.document.documentElement.outerHTML
+    );
+    const descriptor = await pageExtractor.extract(content);
+    if (error) {
+
+    }
+  })
+
 }
 
 function normalizeLocalPath(value: string): string {
@@ -102,9 +97,9 @@ function isCliEntrypoint(): boolean {
 }
 
 export async function runCli(argv: string[] = process.argv): Promise<void> {
-  program.name(name).version(version, '-v, --version').description(description);
+  pagerts.name(name).version(version, '-v, --version').description(description);
 
-  program
+  pagerts
     .addArgument(fileArg)
     .addOption(
       new Option('--no-failsafe', `bypass the ${MAX_FILES_FAILSAFE}-file limit safety check`)
@@ -119,10 +114,10 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     });
 
   // ── fetch subcommand (remote URL mode only) ─────────────────────────────
-  program
+  pagerts
     .command('fetch')
     .description('fetch and extract resources from remote URL(s)')
-    .addArgument(urlArg)
+    .addArgument(targets)
     .addOption(
       new Option(
         '--watch',
@@ -209,7 +204,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     );
 
   // ── file subcommand (local filesystem access) ────────────────────────────
-  program
+  pagerts
     .command('file')
     .description('extract resources from local file(s) via direct filesystem access')
     .addArgument(fileArg)
@@ -225,7 +220,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       }
     });
 
-  await program.parseAsync(argv);
+  await pagerts.parseAsync(argv);
 }
 
 if (isCliEntrypoint()) {

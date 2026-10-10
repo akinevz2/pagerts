@@ -93,7 +93,7 @@ jobs:
         run: |
           node --version
           npm --version
-          npx jest --version
+          npx mocha --version
 
   build:
     name: Build
