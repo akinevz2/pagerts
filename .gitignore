@@ -3,3 +3,4 @@ dist/
 .vscode/launch.json
 coverage/
 pagerts-*.tgz
+.env
