@@ -1,26 +1,28 @@
-import type { DOMResult } from '../page/index.js';
+import type { JSDOM } from 'jsdom';
 import {
-  findResourceLink,
-  findResourceText,
-  type ExternalResource,
+  extractExternal,
+  type External,
   type Resource,
   type Tag,
 } from '../resource.js';
 import { AbstractExtractor } from './AbstractExtractor.js';
 
-export class ResourceExtractor extends AbstractExtractor<DOMResult, ExternalResource[]> {
+export class ResourceExtractor extends AbstractExtractor<JSDOM, External<Resource>[]> {
   constructor(private readonly tags: Tag[]) {
     super('page-extractor');
   }
-  async extract(value: DOMResult): Promise<ExternalResource[]> {
+  async extract(value: JSDOM): Promise<External<Resource>[]> {
     const { document } = value.window;
-    return this.tags.flatMap((tag) =>
-      Array.from(document.querySelectorAll<Resource>(tag)).flatMap((element) => {
-        const link = findResourceLink(element);
-        if (!link) return [];
-        const text = findResourceText(element) ?? { key: 'src' as const, value: link.value };
-        return [{ text, link }];
-      })
-    );
+    const externalResources: External<Resource>[] = [];
+    for (const tag of this.tags) {
+      const selector = document.querySelectorAll<Resource>(tag);
+      const elements = Array.from(selector);
+      for (const element of elements) {
+        const external = extractExternal(element);
+        if (!external?.link.url.startsWith('http')) continue;
+        externalResources.push(external);
+      }
+    }
+    return externalResources;
   }
 }
