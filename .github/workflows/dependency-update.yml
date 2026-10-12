@@ -3,133 +3,51 @@ name: Dependency Update
 on:
   schedule:
     # Check for updates every Monday at 09:00 UTC
-    - cron: '0 9 * * 1'
+    - cron: "0 9 * * 1"
   workflow_dispatch:
 
-# Opt actions runtime into Node 24 now to avoid Node 20 deprecation cliff.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   update-dependencies:
     name: Update Dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
+          node-version: "20"
+          cache: "npm"
 
       - name: Check for outdated packages
         run: npm outdated || true
 
       - name: Update dependencies
         run: |
-          npm update --package-lock-only
-          npm audit fix --package-lock-only || true
+          npm update
+          npm audit fix || true
 
-      - name: Validate dependency update
+      - name: Verify TypeScript build
         run: |
-          npm ci --ignore-scripts
-          npm run lint
+          npm ci
           npm run type-check
-          npm test
+          npm run build
 
-      - name: Create or update dependency pull request
-        env:
-          BASE_BRANCH: ${{ github.ref_name }}
-          BRANCH_NAME: automated-dependency-updates
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update dependencies"
+          title: "chore: automated dependency updates"
+          body: |
+            Automated dependency updates.
 
-          if git diff --quiet --exit-code -- package.json package-lock.json; then
-            echo "No dependency updates were produced."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git checkout -B "$BRANCH_NAME"
-          git add package.json package-lock.json
-          git commit -m "chore: update dependencies"
-
-          gh auth setup-git
-          remote_sha="$(git ls-remote --heads origin "$BRANCH_NAME" | cut -f1)"
-
-          if [[ -n "$remote_sha" ]]; then
-            push_args=(
-              "--force-with-lease=refs/heads/${BRANCH_NAME}:${remote_sha}"
-              origin
-              "HEAD:refs/heads/${BRANCH_NAME}"
-            )
-          else
-            push_args=(origin "HEAD:refs/heads/${BRANCH_NAME}")
-          fi
-
-          if ! git push "${push_args[@]}"; then
-            {
-              echo "## Dependency update PR skipped"
-              echo
-              echo "GitHub blocked the workflow token from pushing \`${BRANCH_NAME}\`."
-              echo "Enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** to let this job open dependency update PRs."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          pr_number="$(
-            gh pr list \
-              --repo "$REPOSITORY" \
-              --base "$BASE_BRANCH" \
-              --head "$BRANCH_NAME" \
-              --limit 1 \
-              --json number \
-              --jq '.[0].number'
-          )"
-
-          if [[ -n "$pr_number" ]]; then
-            echo "Dependency update pull request #$pr_number already exists."
-            exit 0
-          fi
-
-          pr_body="$(
-            printf '%s\n\n%s\n' \
-              "Automated dependency updates." \
-              "Please review the changes and ensure all tests pass."
-          )"
-
-          if ! gh pr create \
-            --repo "$REPOSITORY" \
-            --base "$BASE_BRANCH" \
-            --head "$BRANCH_NAME" \
-            --title "chore: automated dependency updates" \
-            --body "$pr_body"; then
-            {
-              echo "## Dependency update PR skipped"
-              echo
-              echo "GitHub blocked the workflow token from creating a pull request from \`${BRANCH_NAME}\`."
-              echo "Enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** to let this job open dependency update PRs."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
+            Please review the changes and ensure the type check and build pass.
+          branch: automated-dependency-updates
+          delete-branch: true

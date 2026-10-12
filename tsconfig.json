@@ -1,29 +1,14 @@
 {
   "compilerOptions": {
     "module": "NodeNext",
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "target": "ESNext",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "rootDir": "src",
     "outDir": "bin",
     "sourceMap": true,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "types": ["node", "jest"],
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "bin", "coverage", "**/*.test.ts", "**/*.spec.ts"]

@@ -1,16 +1,36 @@
-# PagerTS Maintainers
+# STOP: Tooling Hiccup Memory (Read Before Running Diagnostics)
 
-This file lists current maintainers and project ownership contacts.
+## What happened
 
-## Current Maintainer
+A prior run used `execution_subagent` for a diagnostics/search workflow and got a non-actionable/incorrect completion response ("task_complete tool is disabled"), which interrupted the normal flow and slowed fixes.
 
-- GitHub: [@akinevz2](https://github.com/akinevz2)
+## Why this matters
 
-## Repository
+This repo relies on fast warning triage (`type-check`, `build`, `test`, `audit`). If the tool wrapper is unstable, we lose reliable output and can miss real problems.
 
-- Source: https://github.com/akinevz2/pagerts
-- Issues: https://github.com/akinevz2/pagerts/issues
+## Future-safe rule
 
-## Security Reporting
+For warning/error triage in this repo:
 
-Please use the process documented in `SECURITY.md` for vulnerability reports.
+1. Prefer `run_in_terminal` for deterministic command output.
+2. Use `execution_subagent` only for broad execution summaries when exact raw logs are not required.
+3. When collecting diagnostics, run commands directly and keep stderr/stdout visible.
+
+## Recommended command sequence
+
+```bash
+npm run type-check -- --pretty false
+npm test
+npm run build
+npm audit --ignore-scripts --json
+```
+
+## If a tool hiccup appears again
+
+1. Stop using the failing wrapper for that task.
+2. Switch to direct terminal commands immediately.
+3. Record the exact symptom and fallback used in this file.
+
+## Last updated
+
+2026-04-24

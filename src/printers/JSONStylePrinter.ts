@@ -1,4 +1,4 @@
-import type { PageMetadata } from '../page/index.js';
+import type { PageMetadata } from '../page/Page.js';
 import { AbstractResourcePrinter } from './AbstractResourcePrinter.js';
 
 export class JSONStylePrinter extends AbstractResourcePrinter {

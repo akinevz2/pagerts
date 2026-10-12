@@ -2,163 +2,55 @@
 
 ## Supported Versions
 
-We release patches for security vulnerabilities. Currently supported versions:
+The current `1.6.x` line is the maintained version line. Update to the latest
+available patch release before reporting an issue.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x     | :white_check_mark: |
-| < 1.0.0 | :x:                |
+## Security Considerations
 
-## Security Features
+PagerTS is a URL-fetching CLI. Treat URLs and local-file inputs as sensitive:
 
-PagerTS implements several security measures to protect users:
+- Remote URLs are fetched directly by jsdom. PagerTS does not implement an
+  application-level URL allowlist, request rate limit, or timeout.
+- Requests for multiple URLs run concurrently.
+- `file://` inputs are read using the permissions of the current operating
+  system user. Do not pass untrusted file paths.
+- Parsed page content is not a security sanitizer. Escape or sanitize extracted
+  values before embedding the JSON output in HTML or another executable format.
+- `npm audit` checks known dependency advisories; it does not assess the
+  application code.
 
-### Input Validation
-
-- **URL Validation**: All URLs are validated before processing
-- **Protocol Restrictions**: Remote fetch accepts only `http://` and `https://` protocols
-- **SSRF Mitigation**: Remote fetch blocks private/loopback targets by default unless explicitly opted in
-- **Credential Blocking**: URLs with embedded credentials are rejected
-- **Length Limits**: URLs are limited to 2048 characters to prevent DoS attacks
-- **Pattern Detection**: Suspicious patterns (javascript:, data:, etc.) are blocked
-
-### Rate Limiting
-
-- Requests are rate-limited to prevent abuse (default: 50 requests per minute)
-- Configurable rate limits per instance
-
-### Safe HTML Parsing
-
-- LinkeDOM is used for DOM parsing in a non-executing context
-- JavaScript execution from fetched pages is disabled
-- Timeouts prevent hanging on slow resources
-- Response status/content-type checks are enforced before parsing
-- Remote HTML payloads are capped to avoid oversized response abuse
-- Retry logic with exponential backoff for transient failures
-
-### Data Sanitization
-
-- HTML content is sanitized to prevent XSS attacks
-- Special characters are properly escaped in output
+Use this tool only with URLs and files you are authorized to access. In
+particular, avoid fetching untrusted URLs that may point to private network
+services.
 
 ## Reporting a Vulnerability
 
-We take the security of PagerTS seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+Please do not disclose suspected vulnerabilities in public issues. Report
+them privately through
+[GitHub's security advisory reporting page](https://github.com/akinevz2/pagerts/security/advisories/new).
+Include the affected version or commit, impact, and reproducible steps where
+possible. Please avoid sharing real credentials or sensitive data in a
+proof-of-concept.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+## Dependency Audit
 
-Instead, please report them via email to the maintainer or through GitHub's private vulnerability reporting feature.
-
-Please include the following information:
-
-- Type of issue (e.g., buffer overflow, SQL injection, cross-site scripting, etc.)
-- Full paths of source file(s) related to the manifestation of the issue
-- The location of the affected source code (tag/branch/commit or direct URL)
-- Any special configuration required to reproduce the issue
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code (if possible)
-- Impact of the issue, including how an attacker might exploit it
-
-### What to Expect
-
-- **Acknowledgment**: We will acknowledge your report within 48 hours
-- **Communication**: We will keep you informed about the progress of fixing the issue
-- **Credit**: We will give you credit for the discovery when we announce the fix (unless you prefer to remain anonymous)
-
-## Security Best Practices for Users
-
-When using PagerTS, follow these security guidelines:
-
-### 1. Be Cautious with URLs
+To check installed dependencies for known vulnerabilities, run:
 
 ```bash
-# Good - trusted domain
-pagerts https://example.com
-
-# Bad - suspicious or untrusted URLs
-pagerts javascript:alert(1)  # Will be blocked
-pagerts data:text/html,...   # Will be blocked
+npm audit --ignore-scripts --audit-level=moderate
 ```
 
-### 2. Use Environment Variables for Sensitive Data
+This audit does not replace review of application behavior or the security
+considerations above.
 
-Never hardcode sensitive information. Use environment variables:
+## Testing
+
+Run the offline CLI integration tests with:
 
 ```bash
-# Create a .env file (never commit this!)
-API_KEY=your_secret_key
-
-# Use it in your scripts
-pagerts $TARGET_URL
+npm test
 ```
 
-### 3. Validate Output
-
-Always validate and sanitize output before using it in other systems:
-
-```bash
-# Pipe through jq for safe JSON processing
-pagerts https://example.com | jq '.'
-```
-
-### 4. Keep Dependencies Updated
-
-Regularly update PagerTS and its dependencies:
-
-```bash
-npm update -g pagerts
-```
-
-### 5. Network Security
-
-- Use HTTPS URLs whenever possible
-- Be cautious when fetching from local networks
-- Consider using a VPN or proxy for sensitive operations
-
-### 6. File System Access
-
-When using `file://` URLs:
-
-- Ensure you have appropriate permissions
-- Be cautious with symbolic links
-- Validate file paths to prevent directory traversal
-
-## Security Checklist for Contributors
-
-If you're contributing to PagerTS, ensure your code:
-
-- [ ] Validates all user input
-- [ ] Uses parameterized queries (if applicable)
-- [ ] Properly escapes output
-- [ ] Handles errors gracefully without exposing sensitive information
-- [ ] Includes tests for security-critical functionality
-- [ ] Doesn't introduce new dependencies without security review
-- [ ] Follows the principle of least privilege
-- [ ] Includes appropriate logging (without logging sensitive data)
-
-## Dependencies
-
-PagerTS regularly audits its dependencies for security vulnerabilities. Run the security check:
-
-```bash
-npm run security:check
-```
-
-## Automated Security Testing
-
-PagerTS uses:
-
-- **npm audit**: Checks for known vulnerabilities in dependencies
-- **ESLint with security plugin**: Static analysis for security issues
-- **GitHub Dependabot**: Automated dependency updates
-- **GitHub Actions**: CI/CD with security scanning
-
-## Contact
-
-For security concerns, contact: [GitHub Issues](https://github.com/akinevz2/pagerts/issues)
-
-## Acknowledgments
-
-We thank the following researchers for responsibly disclosing vulnerabilities:
-
-- (None yet - be the first!)
+These tests mock jsdom's network and file loaders. They verify basic extraction
+and JSON output; they are not a security test suite and do not validate
+protection against malicious URLs or page content.

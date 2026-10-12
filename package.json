@@ -1,7 +1,7 @@
 {
   "name": "pagerts",
   "description": "A tool for viewing external relations in a webpage",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "type": "module",
   "main": "main.js",
   "bin": {
@@ -14,18 +14,13 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "test": "jest --coverage",
-    "test:watch": "jest --watch",
-    "build": "esbuild src/main.ts --bundle --packages=external --outdir=bin --sourcemap --platform=node --format=esm",
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.mjs",
     "type-check": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{ts,js,mjs,cjs,json,yml,yaml,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,js,mjs,cjs,json,yml,yaml,md}\"",
-    "security:audit": "npm audit --audit-level=moderate",
-    "security:check": "npm run security:audit && npm run type-check",
-    "security:fix": "npm audit fix && npm run type-check && npm run format",
-    "prepush": "npm run format:check && npm run type-check && npm run security:audit && npm test",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "start": "node ./bin/main.js",
-    "dev": "tsx src/main.ts",
+    "dev": "npm run build && npm start --",
     "prepare": "npm run build"
   },
   "keywords": [
@@ -43,29 +38,14 @@
   },
   "homepage": "https://github.com/akinevz2/pagerts",
   "dependencies": {
-    "commander": "^15.0.0",
-    "linkedom": "^0.18.13"
+    "@commander-js/extra-typings": "^14.0.0",
+    "commander": "^14.0.3",
+    "jsdom": "^30.1.2"
   },
   "devDependencies": {
-    "@swc/core": "^1.16.13",
-    "@swc/jest": "^0.2.39",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^26.6.5",
-    "esbuild": "^0.28.2",
-    "jest": "^30.5.2",
-    "prettier": "^3.9.10",
-    "ts-jest": "^29.4.14",
-    "tsx": "^4.23.15",
-    "typescript": "^5.8.3"
-  },
-  "overrides": {
-    "babel-plugin-istanbul": "^8.0.0",
-    "js-yaml": "^4.3.1"
-  },
-  "allowScripts": {
-    "@swc/core@1.15.33": true,
-    "esbuild@0.28.1": true,
-    "fsevents@2.3.3": true,
-    "unrs-resolver@1.11.1": true
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^22.10.5",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
   }
 }

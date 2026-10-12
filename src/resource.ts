@@ -8,7 +8,7 @@
  */
 
 type Tags = HTMLElementTagNameMap;
-type Key = [keyof ((Tags)[keyof Tags])][number];
+type Key = [keyof Tags[keyof Tags]][number];
 
 const RESOURCE_DISPLAYABLE_KEYS = [
   'id',
@@ -28,15 +28,21 @@ export type LinkAttribute = (typeof RESOURCE_LINK_ATTRIBUTES)[number];
 
 export type ResourceKey = (typeof RESOURCE_DISPLAYABLE_KEYS)[number];
 
+/** Fallback key: the value is the element's tag name, used when no displayable property is set. */
+export const TAG_NAME_KEY = 'tag' as const;
+
 export type Displayable<T = string> = {
-  key: ResourceKey;
+  tag: Tag;
+  key: ResourceKey | typeof TAG_NAME_KEY;
   value: T;
 };
 
-
 type RESOURCE_LINK_IDXS = (typeof RESOURCE_LINK_KEYS)[number];
 type KeysOfUnion<T> = T extends unknown ? keyof T : never;
-export type LinkKey = Extract<RESOURCE_LINK_IDXS, KeysOfUnion<ResourceElement<Tags, (typeof RESOURCE_LINK_KEYS)[number]>>>;
+export type LinkKey = Extract<
+  RESOURCE_LINK_IDXS,
+  KeysOfUnion<ResourceElement<Tags, (typeof RESOURCE_LINK_KEYS)[number]>>
+>;
 
 export function isResourceKey(key: string): key is LinkKey {
   return (RESOURCE_LINK_KEYS as readonly string[]).includes(key);
@@ -45,7 +51,9 @@ export function isResourceKey(key: string): key is LinkKey {
 export const LINK_PROPERTIES: readonly LinkKey[] = RESOURCE_LINK_KEYS.filter(isResourceKey);
 
 export type ResourceLink<T extends Resource = Resource> =
-  | (T extends unknown ? { [K in keyof T & LinkKey]: { key: K; url: T[K] } }[keyof T & LinkKey] : never)
+  | (T extends unknown
+      ? { [K in keyof T & LinkKey]: { key: K; url: T[K] } }[keyof T & LinkKey]
+      : never)
   | { key: LinkAttribute; url: string };
 
 export function findResourceLink<T extends Resource>(resource: T): ResourceLink<T> | undefined {
@@ -63,13 +71,14 @@ export function findResourceLink<T extends Resource>(resource: T): ResourceLink<
   return undefined;
 }
 
-export type External<R extends Resource> = {
-  text: Displayable;
+export type External<R extends Resource> = Displayable & {
   link: ResourceLink<R>;
 };
 
-export const isKeyDefined = <K extends Key, E extends Record<K, unknown>>(key: K, element: E): boolean =>
-  key in element && element[key] !== undefined;
+export const isKeyDefined = <K extends Key, E extends Record<K, unknown>>(
+  key: K,
+  element: E
+): boolean => key in element && element[key] !== undefined;
 
 export function find<T extends Resource, V extends Key>(element: T, keys: V[]): V | undefined {
   for (const key of keys) {
@@ -99,15 +108,18 @@ type test3 = HTMLDivElement extends Resource ? true : false; // false
 type test4 = ResourceElement<Tags, 'src'>;
 
 export function findDisplayable(element: Resource): Displayable {
+  const tag = element.localName as Tag;
   for (const key of RESOURCE_DISPLAYABLE_KEYS) {
     const value: unknown = element[key as keyof Resource];
-    if (typeof value === 'string' && value.trim() !== '') return { key, value: value.trim() };
+    if (typeof value === 'string' && value.trim() !== '') return { tag, key, value: value.trim() };
   }
-  return { key: 'textContent', value: '' };
+  return { tag, key: TAG_NAME_KEY, value: tag };
 }
 
 /** Matches any element carrying at least one link attribute, e.g. `[href],[src],...` */
-export const RESOURCE_SELECTOR = [...RESOURCE_LINK_KEYS, ...RESOURCE_LINK_ATTRIBUTES].map((key) => `[${key}]`).join(',');
+export const RESOURCE_SELECTOR = [...RESOURCE_LINK_KEYS, ...RESOURCE_LINK_ATTRIBUTES]
+  .map((key) => `[${key}]`)
+  .join(',');
 
 export const isResource = (element: Element): element is Resource =>
   LINK_PROPERTIES.some((key) => key in element) ||
@@ -119,7 +131,7 @@ export function queryResources(root: ParentNode = window.document): Resource[] {
 
 export function extractExternal<R extends Resource>(resource: R): External<R> | undefined {
   const link = findResourceLink(resource);
-  return link && { text: findDisplayable(resource), link };
+  return link && { ...findDisplayable(resource), link };
 }
 
 export function queryExternals(root: ParentNode = window.document): External<Resource>[] {
