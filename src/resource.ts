@@ -21,7 +21,8 @@ const RESOURCE_DISPLAYABLE_KEYS = [
   'rel',
 ] as const;
 
-const RESOURCE_LINK_KEYS = ['href', 'action', 'src'] as const;
+export const DEFAULT_RESOURCE_LINK_KEYS = ['href', 'action', 'src'] as const;
+export const RESOURCE_LINK_KEYS = DEFAULT_RESOURCE_LINK_KEYS;
 /** Link attributes with no DOM property; read through getAttribute. */
 export const RESOURCE_LINK_ATTRIBUTES = ['data-src', 'url'] as const;
 export type LinkAttribute = (typeof RESOURCE_LINK_ATTRIBUTES)[number];
@@ -56,12 +57,23 @@ export type ResourceLink<T extends Resource = Resource> =
       : never)
   | { key: LinkAttribute; url: string };
 
-export function findResourceLink<T extends Resource>(resource: T): ResourceLink<T> | undefined {
-  for (const key of LINK_PROPERTIES) {
-    if (!(key in resource)) continue;
-    const url = resource[key as keyof T];
-    if (typeof url === 'string' && url.trim() !== '') {
-      return { key, url } as ResourceLink<T>;
+export function findResourceLink<T extends Resource>(
+  resource: T,
+  linkProperties?: readonly string[]
+): ResourceLink<T> | undefined {
+  const properties = linkProperties
+    ? [...new Set([...DEFAULT_RESOURCE_LINK_KEYS, ...linkProperties])]
+    : LINK_PROPERTIES;
+  for (const key of properties) {
+    if (key in resource) {
+      const url = resource[key as keyof T];
+      if (typeof url === 'string' && url.trim() !== '') {
+        return { key, url } as ResourceLink<T>;
+      }
+    }
+    const attrVal = resource.getAttribute(key);
+    if (attrVal && attrVal.trim() !== '') {
+      return { key: key as LinkAttribute, url: attrVal };
     }
   }
   for (const key of RESOURCE_LINK_ATTRIBUTES) {
@@ -95,6 +107,9 @@ export type ResourceElement<T, U> = {
 
 export type Tag = keyof Tags;
 
+export const DEFAULT_EXTRACTABLE_TAGS: Tag[] = ['a', 'meta', 'link', 'style', 'script'];
+export const DEFAULT_TAGS = DEFAULT_EXTRACTABLE_TAGS;
+
 export type Resource = ResourceElement<Tags, LinkKey>;
 
 export type ResourceByName<T extends keyof Tags> = Tags[T];
@@ -121,19 +136,40 @@ export const RESOURCE_SELECTOR = [...RESOURCE_LINK_KEYS, ...RESOURCE_LINK_ATTRIB
   .map((key) => `[${key}]`)
   .join(',');
 
-export const isResource = (element: Element): element is Resource =>
-  LINK_PROPERTIES.some((key) => key in element) ||
+export const isResource = (
+  element: Element,
+  linkProperties?: readonly string[]
+): element is Resource =>
+  (linkProperties ?? LINK_PROPERTIES).some((key) => key in element || element.hasAttribute(key)) ||
   RESOURCE_LINK_ATTRIBUTES.some((key) => element.hasAttribute(key));
 
-export function queryResources(root: ParentNode = window.document): Resource[] {
-  return Array.from(root.querySelectorAll(RESOURCE_SELECTOR)).filter(isResource);
+export function queryResources(
+  root: ParentNode = window.document,
+  linkProperties?: readonly string[]
+): Resource[] {
+  const selector = [
+    ...new Set([...(linkProperties ?? LINK_PROPERTIES), ...RESOURCE_LINK_ATTRIBUTES]),
+  ]
+    .map((key) => `[${key}]`)
+    .join(',');
+  return Array.from(root.querySelectorAll(selector)).filter((el): el is Resource =>
+    isResource(el, linkProperties)
+  );
 }
 
-export function extractExternal<R extends Resource>(resource: R): External<R> | undefined {
-  const link = findResourceLink(resource);
+export function extractExternal<R extends Resource>(
+  resource: R,
+  linkProperties?: readonly string[]
+): External<R> | undefined {
+  const link = findResourceLink(resource, linkProperties);
   return link && { ...findDisplayable(resource), link };
 }
 
-export function queryExternals(root: ParentNode = window.document): External<Resource>[] {
-  return queryResources(root).flatMap((resource) => extractExternal(resource) ?? []);
+export function queryExternals(
+  root: ParentNode = window.document,
+  linkProperties?: readonly string[]
+): External<Resource>[] {
+  return queryResources(root, linkProperties).flatMap(
+    (resource) => extractExternal(resource, linkProperties) ?? []
+  );
 }
