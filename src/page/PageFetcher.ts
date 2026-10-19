@@ -41,7 +41,6 @@ export class PageFetcher {
           () => reject(new Error(`timed out after ${this.timeoutMs}ms`)),
           this.timeoutMs
         );
-        timer.unref();
       }),
     ]).finally(() => clearTimeout(timer));
   }

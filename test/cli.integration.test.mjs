@@ -19,6 +19,13 @@ function captureStdout(t) {
   return () => JSON.parse(output);
 }
 
+/** A load that never resolves. Settles after `delay` so the test loop stays bounded. */
+function newPromiseRejectionLater(delay) {
+  return new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('load settled late')), delay)
+  );
+}
+
 test('fetches and extracts page resources with JSON output', async (t) => {
   const requestedUrls = [];
   t.mock.method(JSDOM, 'fromURL', async (url) => {
@@ -180,7 +187,7 @@ test('reports a verbose per-page error when a load fails', async (t) => {
 });
 
 test('reports a verbose per-page error when a fetch times out', async (t) => {
-  t.mock.method(JSDOM, 'fromURL', () => new Promise(() => {}));
+  t.mock.method(JSDOM, 'fromURL', () => newPromiseRejectionLater(50));
   const getOutput = captureStdout(t);
 
   await run(['https://example.test/hanging'], undefined, true, undefined, 25);
