@@ -1,9 +1,10 @@
 {
   "name": "pagerts",
   "description": "A tool for viewing external relations in a webpage",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "type": "module",
   "main": "main.js",
+  "start": "node ./bin/main.js",
   "bin": {
     "pagerts": "bin/main.js"
   },
