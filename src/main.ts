@@ -63,8 +63,8 @@ export function printDryRun(
 
   console.log(
     `URLs:\n${urls.map((url) => `  ${url}`).join('\n') || '  (none)'}\n` +
-      `Tags:\n${tags.map((tag) => `  ${tag}`).join('\n') || '  (all document elements)'}\n` +
-      `Link properties:\n${properties.map((property) => `  ${property}`).join('\n')}\n`
+    `Tags:\n${tags.map((tag) => `  ${tag}`).join('\n') || '  (all document elements)'}\n` +
+    `Link properties:\n${properties.map((property) => `  ${property}`).join('\n')}\n`
   );
 }
 
@@ -176,9 +176,9 @@ function makeProgram() {
     const additionalProperties = Array.isArray(properties)
       ? properties
       : (properties ?? '')
-          .split(',')
-          .map((property) => property.trim())
-          .filter(Boolean);
+        .split(',')
+        .map((property) => property.trim())
+        .filter(Boolean);
     const linkProperties = [...new Set([...DEFAULT_RESOURCE_LINK_KEYS, ...additionalProperties])];
     if (dryRun) {
       printDryRun(urls, ['*'], linkProperties, json ?? false);
@@ -216,6 +216,4 @@ async function pagerts(): Promise<void> {
   await makeProgram().parseAsync(process.argv);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  await pagerts();
-}
+await pagerts();
