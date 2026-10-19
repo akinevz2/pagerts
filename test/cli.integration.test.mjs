@@ -1,15 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { JSDOM } from 'jsdom';
-import { printDryRun, run, runAll } from '../bin/main.js';
+import { printDryRun, run, runAll } from '../bin/lib.js';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 function captureStdout(t) {
   let output = '';
+  const write = process.stdout.write.bind(process.stdout);
   t.mock.method(process.stdout, 'write', (chunk) => {
-    output += String(chunk);
-    return true;
+    if (typeof chunk === 'string') {
+      output += chunk;
+      return true;
+    }
+    // Forward the test runner's own protocol frames (Buffers) to the parent.
+    return write(chunk);
   });
   return () => JSON.parse(output);
 }
@@ -97,11 +102,14 @@ test('loads regular file paths through jsdom and returns resources', async (t) =
 
 test('all scans nested elements and finds a custom link property', async (t) => {
   const getOutput = captureStdout(t);
-  t.mock.method(JSDOM, 'fromURL', async (url) =>
-    new JSDOM(
-      '<title>All scan</title><section><div data-href="https://example.test/custom">Nested</div></section>',
-      { url }
-    )
+  t.mock.method(
+    JSDOM,
+    'fromURL',
+    async (url) =>
+      new JSDOM(
+        '<title>All scan</title><section><div data-href="https://example.test/custom">Nested</div></section>',
+        { url }
+      )
   );
 
   await runAll(['https://example.test/'], [], true, ['data-href']);
@@ -129,7 +137,6 @@ test('all subcommand honors Commander option signals', async () => {
       new URL('../bin/main.js', import.meta.url).pathname,
       'all',
       '--dry-run',
-      '--json',
       '-p',
       'data-href',
       'https://example.test/',
@@ -145,11 +152,7 @@ test('all subcommand honors Commander option signals', async () => {
 });
 
 test('dry run reports urls, selected tags, and link properties without fetching', async (t) => {
-  let output = '';
-  t.mock.method(process.stdout, 'write', (chunk) => {
-    output += String(chunk);
-    return true;
-  });
+  const getOutput = captureStdout(t);
 
   printDryRun(
     ['https://example.test/', './local.html'],
@@ -158,9 +161,42 @@ test('dry run reports urls, selected tags, and link properties without fetching'
     true
   );
 
-  assert.deepEqual(JSON.parse(output), {
+  assert.deepEqual(getOutput(), {
     urls: ['https://example.test/', './local.html'],
     tags: ['a', 'img'],
     properties: ['href', 'action', 'src', 'data-link'],
   });
+});
+
+test('reports a verbose per-page error when a load fails', async (t) => {
+  t.mock.method(JSDOM, 'fromURL', () => Promise.reject(new Error('boom: refused')));
+  const getOutput = captureStdout(t);
+
+  await run(['https://example.test/broken'], undefined, true);
+
+  assert.deepEqual(getOutput(), [
+    { error: 'Failed to load https://example.test/broken: boom: refused' },
+  ]);
+});
+
+test('reports a verbose per-page error when a fetch times out', async (t) => {
+  t.mock.method(JSDOM, 'fromURL', () => new Promise(() => {}));
+  const getOutput = captureStdout(t);
+
+  await run(['https://example.test/hanging'], undefined, true, undefined, 25);
+
+  assert.deepEqual(getOutput(), [
+    { error: 'Failed to load https://example.test/hanging: timed out after 25ms' },
+  ]);
+});
+
+test('exits with the commander error when the required argument is missing', () => {
+  const output = spawnSync(
+    process.execPath,
+    [new URL('../bin/main.js', import.meta.url).pathname],
+    { encoding: 'utf8' }
+  );
+
+  assert.equal(output.status, 1);
+  assert.match(output.stderr, /missing required argument/);
 });

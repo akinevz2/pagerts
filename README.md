@@ -75,10 +75,11 @@ pagerts --dry-run --tags a,img https://example.com
 pagerts all --dry-run --properties data-href https://example.com
 ```
 
-The default output is a human-readable log. Use `--json` for JSON output:
+The default output is JSON with one entry per input URL. Use `--no-json` for a
+human-readable log:
 
 ```bash
-pagerts --json https://example.com
+pagerts --no-json https://example.com
 ```
 
 Display the installed version or command help:
@@ -98,23 +99,24 @@ pagerts all [options] <urls...>
 
 Root command options:
 
-| Option | Description |
-| --- | --- |
-| `-v, --version` | Print the version number. |
-| `--json` | Write JSON output instead of the default human-readable log. |
-| `-t, --tags <tags>` | Restrict extraction to these HTML tags. Accepts comma-separated values or repeated options. |
-| `-p, --properties <properties>` | Add link properties to search. Accepts comma-separated values or repeated options. |
-| `--dry-run` | Print the URLs and effective extraction settings without fetching. |
-| `-h, --help` | Display command help. |
+| Option                          | Description                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| `-v, --version`                 | Print the version number.                                                                   |
+| `--no-json`                     | Write a human-readable log instead of the default JSON output.                              |
+| `-t, --tags <tags>`             | Restrict extraction to these HTML tags. Accepts comma-separated values or repeated options. |
+| `-p, --properties <properties>` | Add link properties to search. Accepts comma-separated values or repeated options.          |
+| `--dry-run`                     | Print the URLs and effective extraction settings without fetching.                          |
+| `--timeout <ms>`                | Abort each network fetch after this many milliseconds. Omit to wait indefinitely.           |
+| `-h, --help`                    | Display command help.                                                                       |
 
-`all` options:
+`all` options (root options such as `--no-json` and `--timeout <ms>` are also
+accepted):
 
-| Option | Description |
-| --- | --- |
-| `--json` | Write JSON output instead of the default human-readable log. |
+| Option                          | Description                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
 | `-p, --properties <properties>` | Add link properties to search across all document elements. Accepts comma-separated values. |
-| `--dry-run` | Print the URLs and effective link properties without fetching. |
-| `-h, --help` | Display command help. |
+| `--dry-run`                     | Print the URLs and effective link properties without fetching.                              |
+| `-h, --help`                    | Display command help.                                                                       |
 
 The `all` command scans every document element and does not use `--tags`.
 Both modes include the default link properties `href`, `action`, and `src`;
@@ -123,11 +125,8 @@ property or attribute contains an external resource URL beginning with `http`.
 
 ## Output
 
-The default human-readable output prints the page title and URL, followed by
-each extracted resource in a log-style format.
-
-Use `--json` to write an array with one entry per input URL. A successfully
-parsed page has a `title`, `url`, and `resources` array:
+The default output is a JSON array with one entry per input URL. A
+successfully parsed page has a `title`, `url`, and `resources` array:
 
 ```json
 [
@@ -151,18 +150,19 @@ parsed page has a `title`, `url`, and `resources` array:
 
 Each resource has these fields:
 
-| Field | Description |
-| --- | --- |
-| `tag` | Lowercase element tag name, such as `a`, `link`, or `script`. |
-| `key` | Element property used for its display value. The extractor selects the first available value from `id`, `innerText`, `textContent`, `className`, `ariaLabel`, `ariaDescription`, `alt`, and `rel`; if none is set, the element's tag name is used. |
-| `value` | Display value taken from `key`. When `key` is `tag`, this is the tag name. |
-| `link.key` | Link property or attribute that supplied the URL, for example `href`, `action`, `src`, or a user-specified property. |
-| `link.url` | The extracted resource URL. |
+| Field      | Description                                                                                                                                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tag`      | Lowercase element tag name, such as `a`, `link`, or `script`.                                                                                                                                                                                      |
+| `key`      | Element property used for its display value. The extractor selects the first available value from `id`, `innerText`, `textContent`, `className`, `ariaLabel`, `ariaDescription`, `alt`, and `rel`; if none is set, the element's tag name is used. |
+| `value`    | Display value taken from `key`. When `key` is `tag`, this is the tag name.                                                                                                                                                                         |
+| `link.key` | Link property or attribute that supplied the URL, for example `href`, `action`, `src`, or a user-specified property.                                                                                                                               |
+| `link.url` | The extracted resource URL.                                                                                                                                                                                                                        |
 
-A fetch or parsing failure is represented by an entry with an `error` field.
+A fetch or parsing failure is represented by an entry with an `error` field
+containing the failed URL and the reason.
 
 `--dry-run` does not fetch input URLs. It prints the URLs and effective
-extraction settings; with `--json`, the output has `urls`, `tags`, and
+extraction settings; in the default JSON output, this has `urls`, `tags`, and
 `properties` fields. The `all` command reports `["*"]` for `tags` to indicate
 that it scans every document element.
 

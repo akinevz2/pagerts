@@ -2,6 +2,15 @@
 
 All notable changes to PagerTS are documented in this file.
 
+## v2.0.5
+
+- Added `--timeout <ms>` to abort each network fetch after the given number of milliseconds; the default remains no timeout.
+- Made per-page failures verbose: load errors are reported as `Failed to load <url>: <reason>` entries in the output, including the URL and reason, in both JSON and human-readable modes.
+- The CLI now exits promptly after printing output; a timed-out fetch no longer leaves the process hanging on a pending socket.
+- Restructured the build: the executable entry (`bin/main.js`) is separate from the library API (`bin/lib.js`), so tests can import `run`, `runAll`, and `printDryRun` without executing the CLI.
+- Packaging cleanup: removed stale bundled artifacts (a duplicate `bin/src/` tree, `bin/main.js.backup|fixed|temp|wrong`, and an outdated `bin/package.json`) so `npm pack` ships only the current build.
+- Updated the README for JSON-by-default output (`--no-json`), documented `--timeout <ms>`, and noted the failure-entry format.
+
 ## v1.5.12
 
 - Bumped `js-yaml` to `4.3.2` (via `npm audit fix`) to remediate a high-severity vulnerability: `maxTotalMergeKeys` does not limit CPU use for empty merge sources, allowing CPU exhaustion (GHSA-2883-xcg3-v3hh) affecting js-yaml 4.0.0–4.3.1.
